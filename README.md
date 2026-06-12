@@ -126,7 +126,22 @@ carried.
   the Sin-Eater who respecs you), a shared stash, the parish well, the stocks,
   the gallows kept in good repair, and a **parish notice board** with rotating
   bounties — culls and relic recoveries — paid in shillings and witch ash.
-- A procedural **Victorian waltz** soundtrack that sours when bosses wake.
+- A procedural **chamber score** in 3/4 — music box, pizzicato bass, a
+  breathing string section, and a cello drone, all through a long parlor
+  reverb — with five arrangements (title nocturne, town, the upper house, the
+  deeps, and a timpani boss dirge), eight-bar call-and-answer phrasing, church
+  bells at phrase ends, a toll when a boss falls, and music/effects volume
+  sliders in the pause menu.
+- **Your gear shows on your investigator**: the weapon model follows what's
+  in hand (sabre, coachgun, cane, rapier…), the hat follows the hat (bowler,
+  capotain, periwig, veil, stovepipe), the coat recolors and restyles by
+  armor (brigandine studs, corset ribs, plague collar), and magic / set /
+  unique pieces glint in their rarity color.
+- **Interfaces**: the Grimoire is a proper tree — glowing seals with rank
+  pips on connected rails, live damage/cooldown numbers for your four arts,
+  hover writs, click to inscribe. Shopkeepers greet you with hand-drawn
+  portraits, a pinned purse, tabbed counters (Forge / Arcanum / Socketry /
+  Sell), hover tooltips with worn-gear comparison, and a click-to-sell grid.
 
 ## The art
 

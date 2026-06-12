@@ -192,15 +192,33 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);
 @keyframes msg{0%{opacity:0;transform:translateY(6px)}8%{opacity:.95;transform:none}75%{opacity:.95}100%{opacity:0}}
 
 /* ---------- grimoire ---------- */
-#tree-panel{left:50%;right:auto;transform:translateX(-50%);width:min(480px,94vw)}
+#tree-panel{left:50%;right:auto;transform:translateX(-50%);width:min(500px,94vw)}
 .tree-head{margin:.55rem 0 .15rem;color:var(--brass);letter-spacing:.18em;font-size:.76rem;text-transform:uppercase;border-bottom:1px solid rgba(200,155,60,.25);padding-bottom:.15rem}
-.tree-node small{display:block;color:var(--parchment-dim);font-size:.7rem;font-style:italic;letter-spacing:0;max-width:300px}
-.tree-node.locked{opacity:.45}
-.tree-node span:first-child{padding-right:.5rem}
-
-.tree-node{align-items:flex-start}
-.tree-node span:last-child{white-space:nowrap;display:flex;align-items:center}
 #tree-panel .body{padding-bottom:1rem}
+.gr-skill{display:flex;gap:.55rem;align-items:center;padding:.3rem .2rem;border-bottom:1px dotted rgba(200,155,60,.15)}
+.gr-skill .gly{font-size:1.3rem;filter:drop-shadow(0 2px 2px #000);width:30px;text-align:center}
+.gr-skill .nm{font-size:.84rem;color:var(--parchment);line-height:1.3}
+.gr-skill .dm{font-size:.7rem;color:var(--verdigris)}
+.gr-rail{display:flex;align-items:flex-start;margin:.5rem 0 .35rem;padding:0 .2rem}
+.gr-cell{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
+.gr-node{width:36px;height:36px;border-radius:50%;border:2px solid var(--brass-dim);flex:none;
+  background:radial-gradient(circle at 35% 30%, #2a261c, #14120c);
+  display:flex;align-items:center;justify-content:center;font-size:.78rem;color:var(--parchment-dim);
+  cursor:default;position:relative;box-shadow:0 0 0 2px #000}
+.gr-node.can{border-color:var(--brass);color:#ffe9b0;cursor:pointer;
+  box-shadow:0 0 0 2px #000,0 0 14px rgba(200,155,60,.55);
+  animation:grpulse 1.6s infinite}
+@keyframes grpulse{0%,100%{box-shadow:0 0 0 2px #000,0 0 8px rgba(200,155,60,.35)}50%{box-shadow:0 0 0 2px #000,0 0 18px rgba(200,155,60,.7)}}
+.gr-node.has{border-color:var(--brass);color:var(--parchment)}
+.gr-node.maxed{border-color:var(--uniq-gold);color:var(--uniq-gold);
+  background:radial-gradient(circle at 35% 30%, #4a3a14, #1c160a)}
+.gr-node.locked{opacity:.35}
+.gr-pips{position:absolute;bottom:-8px;left:0;right:0;display:flex;gap:2px;justify-content:center}
+.gr-pips i{width:5px;height:5px;border-radius:50%;background:#33301f;border:1px solid #000}
+.gr-pips i.f{background:var(--brass)}
+.gr-link{height:2px;flex:.7;background:#3a3328;margin-top:18px;min-width:8px}
+.gr-link.on{background:linear-gradient(90deg,var(--brass-dim),var(--brass))}
+.gr-name{font-size:.62rem;color:var(--parchment-dim);text-align:center;margin-top:11px;line-height:1.25;padding:0 .15rem}
 
 .cell{position:relative}
 .cell .qty{position:absolute;right:2px;bottom:1px;font-size:.62rem;color:#ffe9b0;text-shadow:0 0 3px #000;font-style:normal}
@@ -224,7 +242,24 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);
 .j-entry.locked p{font-style:normal;color:#5d655e;font-size:.78rem}
 
 /* ---------- shop ---------- */
-#shop-panel{left:50%;right:auto;transform:translateX(-50%);width:min(440px,94vw)}
+#shop-panel{left:50%;right:auto;transform:translateX(-50%);width:min(460px,94vw)}
+.shop-head{display:flex;gap:.65rem;align-items:center;padding:.5rem .35rem .6rem;border-bottom:1px solid rgba(200,155,60,.3);margin-bottom:.3rem}
+.shop-head canvas{width:56px;height:56px;flex:none;border:1px solid var(--brass-dim);box-shadow:0 0 0 2px #000;border-radius:2px;background:#101410}
+.shop-head .who{flex:1;min-width:0}
+.shop-head .who b{display:block;color:var(--brass);font-weight:400;font-size:.92rem;letter-spacing:.04em}
+.shop-head .who i{display:block;color:var(--parchment-dim);font-size:.74rem;line-height:1.35;margin-top:.15rem}
+.shop-purse{flex:none;text-align:right;font-size:.8rem;color:var(--brass);line-height:1.5}
+.shop-purse small{color:#c78bf2;font-size:.74rem}
+.shop-tabs{display:flex;gap:.3rem;margin:.2rem 0 .45rem}
+.shop-tabs button{flex:1;font-family:inherit;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
+  padding:.34rem .15rem;background:#15130e;border:1px solid #2a261c;color:var(--parchment-dim);cursor:pointer;border-radius:2px}
+.shop-tabs button:hover{color:var(--parchment)}
+.shop-tabs button.on{border-color:var(--brass);color:var(--brass);background:#1c1812}
+.sellgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:.32rem;margin:.35rem 0}
+.sellgrid .cell{aspect-ratio:1;background:#15130e;border:1px solid #2a261c;display:flex;align-items:center;justify-content:center;
+  font-size:1.15rem;cursor:pointer;position:relative;border-radius:2px}
+.sellgrid .cell:hover{border-color:var(--brass)}
+.sellgrid .cell .price{position:absolute;left:2px;bottom:1px;font-size:.56rem;color:var(--brass);text-shadow:0 1px 2px #000}
 .shop-row{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.4rem .15rem;border-bottom:1px dotted rgba(200,155,60,.18);font-size:.84rem}
 .shop-row .nm{flex:1;line-height:1.3}
 .shop-row .nm small{display:block;color:var(--parchment-dim);font-style:italic;font-size:.7rem}
@@ -268,6 +303,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);
 #esc-inner{display:flex;flex-direction:column;gap:.6rem;padding:1.1rem 1.3rem;min-width:300px}
 #esc-inner button{font-family:inherit;font-size:.85rem;letter-spacing:.14em;background:#1c1812;border:1px solid var(--brass-dim);color:var(--parchment);padding:.55rem 1rem;cursor:pointer}
 #esc-inner button:hover{border-color:var(--brass);color:#ffe9b0}
+.vol-row{display:flex;align-items:center;gap:.6rem;font-size:.74rem;letter-spacing:.14em;color:var(--parchment-dim);text-transform:uppercase}
+.vol-row input{flex:1;accent-color:var(--brass);cursor:pointer}
 
 /* ---------- quick menu ---------- */
 #mobile-menu{position:absolute;top:.45rem;right:.55rem;z-index:26;display:none;gap:.35rem}
@@ -316,6 +353,8 @@ body{overscroll-behavior:none;-webkit-touch-callout:none}
   <div class="panel" id="esc-inner">
     <div class="ptitle sc">A Moment&rsquo;s Pause</div>
     <button id="esc-resume">Resume the Investigation</button>
+    <div class="vol-row">Music <input type="range" id="vol-m" min="0" max="100"></div>
+    <div class="vol-row">Effects <input type="range" id="vol-s" min="0" max="100"></div>
     <button id="esc-music">Music On / Off (M)</button>
     <button id="esc-quit">Save &amp; Quit to Title</button>
   </div>
@@ -435,15 +474,23 @@ const fmt=n=>Math.round(n).toLocaleString();
 
 /* ---------- tiny procedural audio ---------- */
 let AC=null;
+let VOL={m:0.55,s:0.85};
+try{ const v=JSON.parse(localStorage.getItem('gng-vol')||'null');
+  if(v){ if(isFinite(+v.m)) VOL.m=clamp(+v.m,0,1); if(isFinite(+v.s)) VOL.s=clamp(+v.s,0,1); } }catch(e){}
+function saveVol(){ try{ localStorage.setItem('gng-vol',JSON.stringify(VOL)); }catch(e){} }
 function audio(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } return AC; }
+function sfxbus(ac){
+  if(!ac._sfx){ ac._sfx=ac.createGain(); ac._sfx.gain.value=VOL.s; ac._sfx.connect(ac.destination); }
+  return ac._sfx;
+}
 function sfx(type){
   const ac=audio(); if(!ac) return;
-  const t=ac.currentTime, g=ac.createGain(); g.connect(ac.destination);
+  const t=ac.currentTime, bus=sfxbus(ac);
   function tone(freq,dur,vol,kind,slide){
     const o=ac.createOscillator(); o.type=kind||'triangle'; o.frequency.setValueAtTime(freq,t);
     if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),t+dur);
     const gg=ac.createGain(); gg.gain.setValueAtTime(vol,t); gg.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    o.connect(gg); gg.connect(ac.destination); o.start(t); o.stop(t+dur);
+    o.connect(gg); gg.connect(bus); o.start(t); o.stop(t+dur);
   }
   function noise(dur,vol,fc){
     const n=ac.sampleRate*dur, buf=ac.createBuffer(1,n,ac.sampleRate), d=buf.getChannelData(0);
@@ -451,7 +498,7 @@ function sfx(type){
     const src=ac.createBufferSource(); src.buffer=buf;
     const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=fc||900;
     const gg=ac.createGain(); gg.gain.value=vol;
-    src.connect(f); f.connect(gg); gg.connect(ac.destination); src.start(t);
+    src.connect(f); f.connect(gg); gg.connect(bus); src.start(t);
   }
   switch(type){
     case 'hit': noise(.09,.30,1200); tone(150,.08,.18,'square',60); break;
@@ -550,28 +597,56 @@ function snapshot(){
 }
 function saveGame(){ const s=snapshot(); if(s) Store.set(slotKey(CUR_SLOT),s); }
 
-/* ---------- procedural music: a Victorian waltz gone wrong ----------
-   3/4 time. E-minor parlor progression (i-iv-VI-V) under a music-box
-   melody; a low cello drone breathes beneath. When a boss wakes, the
-   orchestra lurches into a faster Neapolitan two-chord dirge with
-   timpani. In town it softens to a slow, almost-gentle turn. */
+/* ---------- procedural score: a chamber arrangement for a haunted house ----------
+   3/4 throughout. A music-box carries the tune over pizzicato bass, a breathing
+   string section, and a cello drone, all sent through a long parlor reverb.
+   Five arrangements: title nocturne, town, the upper house, the deeps, and a
+   timpani-driven boss dirge. Phrases alternate every eight bars. */
 const Music={
-  enabled:true, started:false, intensity:0, _int:0, mode:'town',
-  beat:0, mel:0, nextT:0,
+  enabled:true, started:false, intensity:0, _int:0, mode:'title',
+  beat:0, mel:0, nextT:0, vol:VOL.m,
   midi(n){ return 440*Math.pow(2,(n-69)/12); },
-  // chords as midi note stacks (root low)
-  prog:    [[40,47,52,55],[45,48,52,57],[44,48,51,56],[47,51,54,59]], // Em Am C B7
-  bossProg:[[40,46,52,55],[41,47,53,56]],                              // Em(dim color) <-> F (Neapolitan)
-  melody:    [76,79,83,81,79,76,74,76, 72,76,79,78,76,71,74,76],       // composed E-minor turn
-  townMelody:[76,79,83,84,83,79,76,74, 72,74,76,79,76,74,71,72],
-  bossMelody:[76,77,76,71, 74,75,74,68],                               // semitone grinds
+  progs:{
+    title:  [[40,47,52,56],[45,52,56,59],[44,51,55,59],[47,51,54,59]],
+    town:   [[40,47,52,55],[45,52,57,60],[44,51,56,59],[47,54,59,62]],
+    explore:[[40,47,52,55],[45,48,52,57],[44,48,51,56],[47,51,54,59]],
+    deep:   [[38,45,50,53],[43,46,50,55],[39,46,51,54],[45,49,52,57]],
+    boss:   [[40,46,52,55],[41,47,53,56]],
+  },
+  motifs:[
+    [76,79,83,81,79,76,74,76, 72,76,79,78,76,71,74,76],
+    [76,74,72,71,69,71,72,74, 76,79,78,76,74,72,71,69],
+    [83,81,79,81,76,79,74,76, 71,74,79,76,74,71,69,71],
+    [76,79,83,84,83,79,76,74, 72,74,76,79,76,74,71,72],
+  ],
+  bossMel:[76,77,76,71, 74,75,74,68],
+  targ(){ return this.enabled?0.34*this.vol:0; },
+  setVol(v){ this.vol=v; const ac=AC;
+    if(this.master&&ac) this.master.gain.setTargetAtTime(this.targ(),ac.currentTime,0.15); },
+  makeIR(ac){
+    const len=(ac.sampleRate*2.6)|0, buf=ac.createBuffer(2,len,ac.sampleRate);
+    for(let ch=0;ch<2;ch++){ const d=buf.getChannelData(ch);
+      for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6)*(i<700?i/700:1);
+    }
+    return buf;
+  },
   start(){
     const ac=audio(); if(!ac||this.started) return; this.started=true;
-    this.master=ac.createGain(); this.master.gain.value=this.enabled?0.17:0;
-    const comp=ac.createDynamicsCompressor(); this.master.connect(comp); comp.connect(ac.destination);
+    this.master=ac.createGain(); this.master.gain.value=this.targ();
+    const comp=ac.createDynamicsCompressor();
+    this.master.connect(comp); comp.connect(ac.destination);
+    // every instrument plays into the bus; the bus reaches the master dry,
+    // and again through 2.6 seconds of parlor reverb
+    this.bus=ac.createGain(); this.bus.gain.value=1;
+    this.bus.connect(this.master);
+    try{
+      const conv=ac.createConvolver(); conv.buffer=this.makeIR(ac);
+      const wet=ac.createGain(); wet.gain.value=0.5;
+      this.bus.connect(conv); conv.connect(wet); wet.connect(this.master);
+    }catch(e){}
     // cello drone: two detuned saws through a slowly breathing lowpass
     this.df=ac.createBiquadFilter(); this.df.type='lowpass'; this.df.frequency.value=210; this.df.Q.value=1.6;
-    this.dg=ac.createGain(); this.dg.gain.value=0.035; this.df.connect(this.dg); this.dg.connect(this.master);
+    this.dg=ac.createGain(); this.dg.gain.value=0.03; this.df.connect(this.dg); this.dg.connect(this.bus);
     this.d1=ac.createOscillator(); this.d1.type='sawtooth';
     this.d2=ac.createOscillator(); this.d2.type='sawtooth';
     this.d1.connect(this.df); this.d2.connect(this.df);
@@ -588,22 +663,62 @@ const Music={
     this.d1.frequency.setTargetAtTime(f,ac.currentTime,0.5);
     this.d2.frequency.setTargetAtTime(f*1.005,ac.currentTime,0.5);
   },
-  note(freq,t,dur,vol,type){
-    const ac=audio(); const o=ac.createOscillator(); o.type=type||'sine'; o.frequency.value=freq;
-    const g=ac.createGain(); g.gain.setValueAtTime(0.0001,t);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.001,vol),t+0.02);
+  env(t,dur,vol,att){
+    const ac=audio(); const g=ac.createGain();
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.001,vol),t+(att||0.02));
     g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-    o.connect(g); g.connect(this.master); o.start(t); o.stop(t+dur+0.05);
+    g.connect(this.bus); return g;
   },
-  pluck(midiN,t,vol){ // music-box: bright fundamental + chiming partial
-    this.note(this.midi(midiN),t,1.1,vol,'triangle');
-    this.note(this.midi(midiN)*2.01,t,0.45,vol*0.35,'sine');
+  note(freq,t,dur,vol,type,att){
+    const ac=audio(); const o=ac.createOscillator(); o.type=type||'sine'; o.frequency.value=freq;
+    o.connect(this.env(t,dur,vol,att)); o.start(t); o.stop(t+dur+0.08);
+  },
+  pluck(midiN,t,vol){ // music box: chiming partials over a bright fundamental
+    const f=this.midi(midiN);
+    this.note(f,t,1.6,vol,'sine',0.004);
+    this.note(f*2.01,t,0.7,vol*0.32,'sine',0.004);
+    this.note(f*5.4,t,0.22,vol*0.09,'sine',0.002);
+  },
+  pizz(midiN,t,vol){ // plucked low strings
+    const ac=audio(); const f=this.midi(midiN);
+    const o=ac.createOscillator(); o.type='triangle'; o.frequency.value=f;
+    const fl=ac.createBiquadFilter(); fl.type='lowpass'; fl.frequency.value=f*6;
+    o.connect(fl); fl.connect(this.env(t,0.5,vol,0.006));
+    o.start(t); o.stop(t+0.55);
+  },
+  strings(notes,t,dur,vol){ // a small section breathing under the tune
+    const ac=audio();
+    for(const n of notes){
+      const f=this.midi(n);
+      for(const det of [0.996,1.005]){
+        const o=ac.createOscillator(); o.type='sawtooth'; o.frequency.value=f*det;
+        const fl=ac.createBiquadFilter(); fl.type='lowpass'; fl.frequency.value=900; fl.Q.value=0.6;
+        const g=ac.createGain();
+        g.gain.setValueAtTime(0.0001,t);
+        g.gain.linearRampToValueAtTime(vol*0.5,t+dur*0.35);
+        g.gain.setValueAtTime(vol*0.5,t+dur*0.7);
+        g.gain.linearRampToValueAtTime(0.0001,t+dur);
+        o.connect(fl); fl.connect(g); g.connect(this.bus);
+        o.start(t); o.stop(t+dur+0.05);
+      }
+    }
+  },
+  bell(midiN,t,vol){ // a church bell several streets away
+    const f=this.midi(midiN);
+    for(const [m,v,d] of [[1,1,3.4],[2.0,0.5,2.2],[2.76,0.32,1.5],[5.4,0.12,0.8]])
+      this.note(f*m,t,d,vol*v,'sine',0.005);
+  },
+  toll(){ // the resolution after a boss falls
+    const ac=audio(); if(!ac||!this.started) return;
+    const t=ac.currentTime+0.1;
+    this.bell(64,t,0.07); this.bell(59,t+0.55,0.06); this.bell(52,t+1.2,0.08);
   },
   thump(t,vol,f0){ // timpani
     const ac=audio(); const o=ac.createOscillator(); o.type='sine';
     o.frequency.setValueAtTime(f0||115,t); o.frequency.exponentialRampToValueAtTime(44,t+0.22);
     const g=ac.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.32);
-    o.connect(g); g.connect(this.master); o.start(t); o.stop(t+0.35);
+    o.connect(g); g.connect(this.bus); o.start(t); o.stop(t+0.35);
   },
   tick(t,vol){
     const ac=audio(); const n=(ac.sampleRate*0.05)|0;
@@ -612,47 +727,60 @@ const Music={
     const s=ac.createBufferSource(); s.buffer=buf;
     const f=ac.createBiquadFilter(); f.type='bandpass'; f.frequency.value=2400;
     const g=ac.createGain(); g.gain.value=vol;
-    s.connect(f); f.connect(g); g.connect(this.master); s.start(t);
+    s.connect(f); f.connect(g); g.connect(this.bus); s.start(t);
   },
   setMode(m){ if(this.mode!==m){ this.mode=m; this.mel=0; } },
   sched(){
     const ac=audio(); if(!ac||ac.state!=='running'||!this.started) return;
     this._int+=(this.intensity-this._int)*0.06;
-    const boss=this.mode==='boss', town=this.mode==='town';
-    const beatDur=boss?0.40:(town?0.64:0.55);
-    while(this.nextT<ac.currentTime+0.4){
+    const m=this.mode;
+    const beatDur=m==='boss'?0.42:m==='title'?0.8:m==='town'?0.66:m==='deep'?0.6:0.56;
+    while(this.nextT<ac.currentTime+0.45){
       const t=this.nextT, b=this.beat, bar=Math.floor(b/3), inBar=b%3;
-      const prog=boss?this.bossProg:this.prog;
+      const prog=this.progs[m]||this.progs.explore;
+      const sect=Math.floor(bar/8)%2;                  // eight-bar phrases, A then B
       const chord=prog[bar%prog.length];
       if(inBar===0){
         this.tune(chord[0]);
-        if(this.dg) this.dg.gain.setTargetAtTime(boss?0.06:(town?0.022:0.035+this._int*0.02),ac.currentTime,0.4);
-        // the "oom": low bass on the downbeat
-        this.note(this.midi(chord[0]-12),t,beatDur*2.6,boss?0.20:0.15,'triangle');
-        if(boss) this.thump(t,0.30,120);
+        if(this.dg) this.dg.gain.setTargetAtTime(
+          m==='boss'?0.055:m==='title'?0.03:m==='town'?0.018:0.03+this._int*0.02, ac.currentTime,0.4);
+        this.pizz(chord[0]-12,t,m==='boss'?0.22:m==='title'?0.10:0.15);
+        if(m==='boss') this.thump(t,0.30,118);
+        if(m==='title'||m==='boss'||bar%2===0)
+          this.strings(chord.slice(1),t,beatDur*3.05,
+            (m==='town'?0.016:m==='title'?0.028:m==='deep'?0.024:0.02)+this._int*0.012);
       } else {
-        // the "pah-pah": soft mid-register chord tones
-        for(let i=1;i<chord.length;i++)
-          this.note(this.midi(chord[i]),t,beatDur*0.85,(town?0.024:0.030)+(boss?0.014:this._int*0.012),'triangle');
-        if(boss&&inBar===2) this.thump(t,0.17,90);
-        if(!boss&&!town&&this._int>0.25) this.tick(t,0.035+this._int*0.07);
+        if(m!=='title')
+          for(let i=1;i<chord.length;i++)
+            this.note(this.midi(chord[i]),t,beatDur*0.8,
+              (m==='town'?0.018:0.024)+(m==='boss'?0.012:this._int*0.012),'triangle',0.012);
+        if(m==='boss'&&inBar===2) this.thump(t,0.16,88);
+        if((m==='explore'||m==='deep')&&this._int>0.25) this.tick(t,0.03+this._int*0.06);
       }
-      // music-box melody, eighth-note motion
-      const mel=boss?this.bossMelody:(town?this.townMelody:this.melody);
-      const mvol=(town?0.055:0.045)+this._int*0.028;
-      if(boss||town||Math.random()<0.7){
-        this.pluck(mel[this.mel%mel.length],t,mvol); this.mel++;
-        if(Math.random()<(boss?0.6:0.32)){ this.pluck(mel[this.mel%mel.length],t+beatDur/2,mvol*0.8); this.mel++; }
+      // the music box carries the tune; phrase B answers phrase A
+      const mel=m==='boss'?this.bossMel:
+        m==='title'?this.motifs[1]:
+        m==='town'?this.motifs[sect?3:0]:
+        m==='deep'?this.motifs[sect?2:1]:this.motifs[sect?1:0];
+      const oct=m==='deep'?-12:0;
+      const mvol=(m==='town'?0.05:m==='title'?0.034:0.042)+this._int*0.026;
+      const density=m==='boss'?0.92:m==='title'?0.4:m==='town'?0.85:0.72;
+      if(Math.random()<density){
+        const nn=mel[this.mel%mel.length]+oct;
+        this.pluck(nn,t,mvol); this.mel++;
+        if(m!=='title'&&Math.random()<0.2) this.pluck(nn-12,t,mvol*0.4);     // an octave shadow
+        if(Math.random()<(m==='boss'?0.6:0.3)){
+          this.pluck(mel[this.mel%mel.length]+oct,t+beatDur/2,mvol*0.75); this.mel++;
+        }
       }
-      if(inBar===0&&bar%4===3&&Math.random()<0.5)
-        this.note(this.midi(boss?52:64),t,3.2,0.030,'sine'); // a far-off church bell at phrase ends
+      if(inBar===0&&bar%8===7) this.bell(m==='boss'?52:64,t,0.045);
       this.beat++; this.nextT+=beatDur;
     }
   },
   toggle(){
     this.enabled=!this.enabled;
     const ac=audio();
-    if(this.master&&ac) this.master.gain.setTargetAtTime(this.enabled?0.17:0,ac.currentTime,0.1);
+    if(this.master&&ac) this.master.gain.setTargetAtTime(this.targ(),ac.currentTime,0.1);
     return this.enabled;
   },
 };
@@ -1293,7 +1421,7 @@ const T_WALL=0,T_FLOOR=1,T_STAIRS=2,T_SHRINE=3,T_UP=4;
 const TOWN_PORTAL={x:17,y:22};
 const BOARD_POS={x:12,y:6};
 const TOWN_LAMPS=[[10,12],[19,12],[10,18],[19,18],[14,25],[15,25]];
-let map=null, MW=0, MH=0, seen=null, lit=null, decor=null;
+let map=null, MW=0, MH=0, seen=null, lit=null, decor=null, bLit=null;
 
 /* decor codes — 1 gravestone 2 candle 3 fence 4 tuft 5 cauldron 6 ritual ring 7 coffin 8 portrait 9 gas lamp
    10 clock 11 armchair 12 bookshelf 13 candelabrum 14 pianoforte 15 mirror 16 bust 17 cask 18 wine rack 19 pew
@@ -1386,6 +1514,31 @@ function genTown(){
   return {start:{cx:14,cy:22}};
 }
 const walkable=(x,y)=>x>=0&&y>=0&&x<MW&&y<MH&&map[y][x]!==T_WALL;
+/* things that burn cast their own standing light, baked once per floor */
+const LIGHT_DECOR={2:[2.2,0.55],5:[1.8,0.35],9:[3.5,0.9],13:[3,0.7],20:[2,0.45],24:[3.2,0.7],26:[1.2,0.25],29:[1.8,0.35],30:[1.5,0.3]};
+function bakeLights(){
+  bLit=Array.from({length:MH},()=>new Array(MW).fill(0));
+  const stamp=(cx,cy,r,str)=>{
+    for(let y=Math.max(0,cy-r|0);y<=Math.min(MH-1,cy+r|0);y++)
+      for(let x=Math.max(0,cx-r|0);x<=Math.min(MW-1,cx+r|0);x++){
+        const d=Math.hypot(x-cx,y-cy);
+        if(d>r) continue;
+        if(map[y][x]!==T_WALL&&!hasLOS(cx,cy,x,y)) continue;
+        bLit[y][x]=Math.max(bLit[y][x],(1-d/r)*str);
+      }
+  };
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const L=LIGHT_DECOR[decor[y][x]];
+    if(L) stamp(x,y,L[0],L[1]);
+    if(map[y][x]===T_STAIRS) stamp(x,y,2,0.5);
+    if(map[y][x]===T_SHRINE) stamp(x,y,2,0.5);
+  }
+}
+function litAt(x,y){
+  const a=(lit&&lit[y])?lit[y][x]||0:0;
+  const b2=(bLit&&bLit[y])?bLit[y][x]||0:0;
+  return Math.max(a,b2);
+}
 
 /* A* pathfinding (8-dir, no corner cutting) */
 function findPath(sx,sy,tx,ty,maxIter){
@@ -1779,7 +1932,7 @@ function killEnemy(e){
     dropAsh(randi(3,5),e.x,e.y-.6);
     document.getElementById('bossbar').style.display='none';
     msg('<b style="color:var(--uniq-gold)">'+e.name+'</b> is no more. The mansion shudders.', '#f0bd4e');
-    sfx('gold-drop');
+    sfx('gold-drop'); Music.toll();
     if(G.indict&&!G.indict.done){
       G.indict.done=true;
       dropItem(makeItem(G.floor+1,'unique'),e.x,e.y+.8);
@@ -2134,7 +2287,7 @@ function usePotion(kind){
    ===================================================================== */
 function cacheFloor(){
   if(G.player==null||map==null||G.indict) return; // indicted floors are one visit only
-  G.cache[G.floor]={map,decor,seen,lit,MW,MH,enemies:G.enemies,drops:G.drops,stains:G.stains,
+  G.cache[G.floor]={map,decor,seen,lit,bLit,MW,MH,enemies:G.enemies,drops:G.drops,stains:G.stains,
     boss:G.boss,shrineUsed:G.shrineUsed,shrineType:G.shrineType,stairs:G.stairs,up:G.up,npcs:G.npcs,
     chests:G.chests,breaks:G.breaks,event:G.event};
 }
@@ -2159,6 +2312,7 @@ function startFloor(n,from){
     G.enemies=cached.enemies; G.drops=cached.drops; G.stains=cached.stains;
     G.boss=cached.boss; G.shrineUsed=cached.shrineUsed; G.shrineType=cached.shrineType||'mending'; G.stairs=cached.stairs; G.up=cached.up; G.npcs=cached.npcs||[];
     G.chests=cached.chests||[]; G.breaks=cached.breaks||[]; G.event=cached.event||null;
+    bLit=cached.bLit||null;
   } else if(n===0){
     const {start}=genTown();
     G.enemies=[]; G.drops=[]; G.stains=[]; G.boss=null; G.shrineUsed=true;
@@ -2167,6 +2321,7 @@ function startFloor(n,from){
     G.npcs=NPCS.map(d=>({...d}));
     if(p.ending==='spared') G.npcs.push({id:'abigail', n:'A Quiet Woman by the Gallows', glyph:'🕯️', color:'#f0bd4e', x:24, y:14,
       greet:'The hill is pleasant in the evenings, now that it is only a hill.'});
+    bakeLights();
     G.cacheTownStart={x:start.cx,y:start.cy};
   } else {
     G.shrineUsed=false;
@@ -2177,6 +2332,7 @@ function startFloor(n,from){
     spawnEnemies(rooms,n);
     G.drops=[]; G.stains=[];
     placeFurnishings(rooms,n);
+    bakeLights();
     if(G.enemies.some(e=>e.revenant&&!e.dead))
       msg('Something on this floor wears a <b style="color:#9fb6c9">familiar coat</b>.','#9fb6c9');
   }
@@ -2200,6 +2356,7 @@ function startFloor(n,from){
   document.getElementById('banner-h').textContent=t;
   document.getElementById('banner-p').textContent=sub;
   b.style.opacity=1; setTimeout(()=>b.style.opacity=0,2600);
+  G.fade=1;
   if(G.boss&&!G.boss.dead){ document.getElementById('bossbar').style.display='block';
     document.getElementById('boss-name').textContent=G.boss.name; sfx('boss');
     msg('The way down is <b style="color:var(--blood)">sealed</b> by the presence above it. Slay <b>'+G.boss.name+'</b>.','#e08a8a'); }
@@ -2241,6 +2398,7 @@ function update(dt){
     if(d<=step){ p.x=tx;p.y=ty;p.path.shift(); }
     else { p.x+=(tx-p.x)/d*step; p.y+=(ty-p.y)/d*step; p.dir=(tx>p.x-0.001)?(tx>p.x?1:p.dir):-1; if(Math.abs(tx-p.x)>.02) p.dir=tx>p.x?1:-1; }
     p.anim+=dt*9;
+    if(Math.random()<dt*6) addFx(p.x+rand(-.2,.2),p.y+rand(-.2,.2),'rgba(150,140,118,.45)',1,.3,.5);
     // arrive actions
     if(!p.path.length){
       if(p.pendingAttack){ const e=p.pendingAttack; p.pendingAttack=null;
@@ -2340,7 +2498,10 @@ function update(dt){
       if(!ox&&!oy) continue;
       const nx=x+ox, ny=y+oy;
       if(nx<0||ny<0||nx>=MW||ny>=MH) continue;
-      if(map[ny][nx]!==T_WALL&&lit[ny][nx]>best) best=lit[ny][nx];
+      if(map[ny][nx]!==T_WALL){
+        const v=Math.max(lit[ny][nx],(bLit&&bLit[ny])?bLit[ny][nx]:0);
+        if(v>best) best=v;
+      }
     }
     if(best>0.04){ seen[y][x]=true; lit[y][x]=Math.max(lit[y][x],best*0.92); }
   }
@@ -2556,11 +2717,12 @@ function update(dt){
   if(indictMod('hungry')&&!p.dead&&Math.random()<dt*0.45)
     addTele(p.x+rand(-1.2,1.2),p.y+rand(-1.2,1.2),1.3,1.0,scaleDmg(8,G.floor)*1.6,'#c34b56',{src:'the hungry floor'});
   G.shake=Math.max(0,(G.shake||0)-dt*1.4);
+  G.fade=Math.max(0,(G.fade||0)-dt*2.2);
   G.musT=(G.musT||0)-dt;
   if(G.musT<=0){ G.musT=.5; let agg=0;
     for(const e of G.enemies) if(!e.dead&&e.aggro&&dist(e.x,e.y,p.x,p.y)<14) agg++;
     Music.intensity=(G.boss&&!G.boss.dead&&G.boss.aggro)?1:clamp(agg/5,0,0.8);
-    Music.setMode(G.floor===0?'town':(G.boss&&!G.boss.dead&&G.boss.aggro?'boss':'explore'));
+    Music.setMode(G.floor===0?'town':(G.boss&&!G.boss.dead&&G.boss.aggro?'boss':(floorBand(G.floor)>=4?'deep':'explore')));
   }
   // camera
   const [sx,sy]=worldToIso(p.x,p.y);
@@ -3138,6 +3300,94 @@ function openStash(){
 
 /* ---------- the keepers of Salem Village ---------- */
 function closeShop(){ document.getElementById('shop-panel').style.display='none'; }
+function drawPortrait(cv){
+  const id=cv.dataset.pt, c=cv.getContext('2d');
+  c.setTransform(2,0,0,2,0,0); c.clearRect(0,0,56,56);
+  const bg=c.createLinearGradient(0,0,0,56);
+  bg.addColorStop(0,'#23261f'); bg.addColorStop(1,'#0b0d0b');
+  c.fillStyle=bg; c.fillRect(0,0,56,56);
+  const warm=c.createRadialGradient(10,12,2,10,12,42);
+  warm.addColorStop(0,'rgba(216,160,72,.28)'); warm.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=warm; c.fillRect(0,0,56,56);
+  const skin={smith:'#b08a64',sineater:'#b09a84',abigail:'#d8c2a8'}[id]||'#caa27c';
+  const coat={alchemist:'#2c3a36',smith:'#33302a',inn:'#3a2a30',merchant:'#2a3038',sineater:'#3a3344',abigail:'#cfc2a0'}[id]||'#2e2a24';
+  // shoulders
+  c.fillStyle=coat;
+  c.beginPath();c.moveTo(5,56);c.quadraticCurveTo(8,38,20,34);c.lineTo(36,34);c.quadraticCurveTo(48,38,51,56);c.closePath();c.fill();
+  c.fillStyle='rgba(0,0,0,.3)';
+  c.beginPath();c.moveTo(33,34);c.quadraticCurveTo(46,38,49,56);c.lineTo(40,56);c.quadraticCurveTo(38,40,30,35);c.closePath();c.fill();
+  // head
+  c.fillStyle=skin; c.beginPath();c.arc(28,23,9,0,7);c.fill();
+  c.fillStyle='rgba(0,0,0,.22)'; c.beginPath();c.arc(31,24,8.4,-1.4,1.6);c.fill();
+  c.fillStyle='#1c1a16'; c.fillRect(23.4,22,2,2.2); c.fillRect(30,22,2,2.2);
+  if(id==='alchemist'){
+    c.fillStyle='#5a4a36'; c.beginPath();c.arc(28,17.5,8.4,Math.PI,0);c.fill();
+    c.beginPath();c.arc(36,15,3.4,0,7);c.fill();
+    c.fillStyle='#cfc6ad'; c.fillRect(22,32,12,4);
+    c.fillStyle='#3a4a46'; c.fillRect(40,40,5,9);
+    c.fillStyle='rgba(123,227,196,.85)'; c.fillRect(41,42,3,6);
+  } else if(id==='smith'){
+    c.fillStyle='#2c2620'; c.fillRect(19,13,18,4);
+    c.fillStyle='#4a3a30'; c.beginPath();c.moveTo(21,28);c.quadraticCurveTo(28,35,35,28);c.lineTo(34,24.5);c.quadraticCurveTo(28,29,22,24.5);c.closePath();c.fill(); // beard
+    c.strokeStyle='#4a3a28'; c.lineWidth=4;
+    c.beginPath();c.moveTo(14,56);c.lineTo(30,36);c.stroke(); // apron strap
+    const fg=c.createRadialGradient(50,46,2,50,46,18);
+    fg.addColorStop(0,'rgba(255,140,60,.4)'); fg.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=fg; c.fillRect(30,30,26,26);
+  } else if(id==='inn'){
+    c.fillStyle='#cfc6ad';
+    c.beginPath();c.arc(28,20,11,Math.PI*0.95,Math.PI*2.05);c.fill();
+    c.fillRect(17,19,3,8); c.fillRect(36,19,3,8);
+    c.fillStyle='#d9a05b'; c.fillRect(40,42,6,3);
+    c.fillStyle='#e8d9a0'; c.fillRect(41.5,38,3,4);
+  } else if(id==='merchant'){
+    c.fillStyle='#15130f'; c.fillRect(18,12.5,20,3.4); c.fillRect(21.5,2,13,11);
+    c.strokeStyle='#c89b3c'; c.lineWidth=1;
+    c.beginPath();c.arc(31,23,3,0,7);c.stroke();
+    c.beginPath();c.moveTo(33,25.5);c.quadraticCurveTo(37,31,35,36);c.stroke();
+    c.fillStyle='#cfc4a4'; c.fillRect(12,44,10,8);
+    c.fillStyle='#3a2c1e'; c.fillRect(11,43,12,2);
+  } else if(id==='sineater'){
+    c.fillStyle='#4a4258';
+    c.beginPath();c.moveTo(14,34);c.quadraticCurveTo(14,8,28,8);c.quadraticCurveTo(42,8,42,34);c.lineTo(36,30);c.quadraticCurveTo(36,16,28,16);c.quadraticCurveTo(20,16,20,30);c.closePath();c.fill();
+    c.fillStyle='#4a4258';
+    c.beginPath();c.moveTo(20,30);c.quadraticCurveTo(28,12,36,30);c.lineTo(36,21);c.quadraticCurveTo(28,13,20,21);c.closePath();c.fill();
+    c.fillStyle='rgba(10,10,14,.85)'; c.fillRect(20,18,16,7); // the hood hides the eyes
+    c.fillStyle='rgba(199,139,242,.8)'; c.fillRect(26.4,27.5,3.2,2);
+  } else if(id==='abigail'){
+    c.globalAlpha=0.92;
+    c.fillStyle='#9a8a66';
+    c.beginPath();c.moveTo(18,36);c.quadraticCurveTo(15,16,28,13);c.quadraticCurveTo(41,16,38,36);c.lineTo(34,30);c.lineTo(22,30);c.closePath();c.fill();
+    c.fillStyle=skin; c.beginPath();c.arc(28,23,8.2,0,7);c.fill();
+    c.fillStyle='#1c1a16'; c.fillRect(24,22,1.8,2); c.fillRect(30,22,1.8,2);
+    const hg=c.createRadialGradient(28,23,4,28,23,22);
+    hg.addColorStop(0,'rgba(240,189,78,.16)'); hg.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=hg; c.fillRect(0,0,56,56);
+    c.fillStyle='#d9cdb0'; c.fillRect(43,42,3,7);
+    c.fillStyle='rgba(240,189,78,.9)'; c.beginPath();c.ellipse(44.5,40,2,3.2,0,0,7);c.fill();
+    c.globalAlpha=1;
+  } else { // a bowler for anyone else
+    c.fillStyle='#15130f';
+    c.beginPath();c.arc(28,16,9.6,Math.PI,0);c.fill(); c.fillRect(16,15,24,3);
+  }
+  // vignette
+  const vg=c.createRadialGradient(28,28,16,28,28,42);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.55)');
+  c.fillStyle=vg; c.fillRect(0,0,56,56);
+}
+function shopHead(npc){
+  const p=G.player;
+  return '<div class="shop-head"><canvas width="112" height="112" data-pt="'+npc.id+'"></canvas>'
+    +'<div class="who"><b>'+npc.n+'</b><i>“'+npc.greet+'”</i></div>'
+    +'<div class="shop-purse">🪙 '+fmt(p.gold)+'<br><small>'+(p.ash||0)+' witch ash</small></div></div>';
+}
+function shopTabs(id,tabs){
+  G.shopTab=G.shopTab||{};
+  const cur=G.shopTab[id]||tabs[0][0];
+  let h='<div class="shop-tabs">';
+  for(const [k,label] of tabs) h+='<button data-tab="'+k+'" class="'+(k===cur?'on':'')+'">'+label+'</button>';
+  return h+'</div>';
+}
 function repairCost(){
   const p=G.player; let miss=0;
   for(const k of ['weapon','armor','hat','gloves','boots']){ const it=p.equip[k];
@@ -3175,10 +3425,13 @@ function sellSection(){
   const sa=sellableValue(p);
   if(sa.n>0) h+='<div class="shop-row"><span class="nm">\uD83E\uDDF9 Sell everything<small>All '+sa.n+' wares at once. Scrolls of Escape stay in the satchel.</small></span>'
     +'<button data-sellall="1">Sell all \uD83E\uDE99'+sa.v+'</button></div>';
+  h+='<div class="sellgrid">';
   p.bag.forEach((it,i)=>{
-    h+='<div class="shop-row"><span class="nm">'+itemIcon(it)+' <span class="nm-'+it.rarity+'">'+it.name+((it.qty||1)>1?' \u00D7'+it.qty:'')+'</span></span>'
-      +'<button data-sell="'+i+'">Sell \uD83E\uDE99'+sellValue(it)+((it.qty||1)>1?' (one)':'')+'</button></div>';
+    h+='<div class="cell r-'+it.rarity+'" data-sell="'+i+'">'+itemIcon(it)
+      +((it.qty||1)>1?'<span class="qty">'+it.qty+'</span>':'')
+      +'<span class="price">'+sellValue(it)+'</span></div>';
   });
+  h+='</div><div class="shop-note" style="font-size:.68rem;padding:.15rem 0">Click a ware to sell it \u2014 bundles go one at a time. Hover to appraise.</div>';
   return h;
 }
 function wireSell(body,reopen){
@@ -3190,11 +3443,17 @@ function wireSell(body,reopen){
       msg('Sold the lot for <b style="color:var(--brass)">'+sa.v+' shillings</b>. The satchel sighs with relief.');
       updateHud(); renderInv(); saveGame(); openShop(reopen); };
   });
-  body.querySelectorAll('button[data-sell]').forEach(btn=>{
-    btn.onclick=()=>{ const p=G.player, i=+btn.dataset.sell, it=p.bag[i]; if(!it) return;
-      if(it.consume) spendConsumable(p,i); else p.bag.splice(i,1);
-      p.gold+=sellValue(it); sfx('gold-drop');
-      msg('Sold <b class="nm-'+it.rarity+'">'+it.name+'</b> for '+sellValue(it)+' shillings.');
+  body.querySelectorAll('[data-sell]').forEach(el=>{
+    const i=+el.dataset.sell, it=G.player.bag[i];
+    if(it){
+      el.onmouseenter=ev=>showTextTooltip(itemTooltipHTML(it)
+        +'<div class="hint">Sells for \uD83E\uDE99'+sellValue(it)+((it.qty||1)>1?' apiece':'')+'</div>',ev);
+      el.onmouseleave=hideTooltip;
+    }
+    el.onclick=()=>{ const p=G.player, it2=p.bag[i]; if(!it2) return;
+      if(it2.consume) spendConsumable(p,i); else p.bag.splice(i,1);
+      p.gold+=sellValue(it2); sfx('gold-drop'); hideTooltip();
+      msg('Sold <b class="nm-'+it2.rarity+'">'+it2.name+'</b> for '+sellValue(it2)+' shillings.');
       updateHud(); renderInv(); saveGame(); openShop(reopen); };
   });
 }
@@ -3221,8 +3480,7 @@ function openShop(id){
   for(const pid of ['inv-panel','char-panel','tree-panel','stash-panel','journal-panel']) document.getElementById(pid).style.display='none';
   const panel=document.getElementById('shop-panel'), body=document.getElementById('shop-body');
   document.getElementById('shop-title').innerHTML=npc.n+' <small></small>';
-  let h='<div class="shop-note">\u201C'+npc.greet+'\u201D</div>';
-  h+='<div class="shop-note" style="padding:.1rem 0 .5rem">You carry <b style="color:var(--brass)">\uD83E\uDE99 '+fmt(p.gold)+'</b> shillings and <b style="color:#c78bf2">'+(p.ash||0)+' witch ash</b>.</div>';
+  let h=shopHead(npc);
   if(id==='alchemist'){
     const ph=12+G.deepest*3, pa=10+G.deepest*2;
     h+='<div class="shop-row"><span class="nm">\uD83E\uDED9 Laudanum Draught<small>Restores 45% of your life. Carried on the belt (Q).</small></span><button data-buy="hp" '+(p.gold<ph?'disabled':'')+'>Buy \uD83E\uDE99'+ph+'</button></div>';
@@ -3233,15 +3491,20 @@ function openShop(id){
     h+='<div class="shop-row"><span class="nm">\uD83D\uDECF\uFE0F A bed and a broth<small>Fully restores life and aether.</small></span><button data-rest="1" '+((p.gold<cost||full)?'disabled':'')+'>'+(full?'Hale already':'Rest \uD83E\uDE99'+cost)+'</button></div>';
     h+='<div class="shop-note">The Widow keeps a candle in every window. \u201CSo they know the town still watches back,\u201D she says.</div>';
   } else if(id==='smith'){
+    const tab=(G.shopTab&&G.shopTab[id])||'forge';
+    h+=shopTabs(id,[['forge','Forge'],['arcanum','Arcanum'],['socket','Socketry'],['sell','Sell']]);
+    if(tab==='forge'){
     const rc=repairCost();
-    h+='<div class="shop-row"><span class="nm">\u2692\uFE0F Repair all worn gear<small>Hammers your weapon, coat, and hat back to full durability.</small></span><button data-repair="1" '+((rc<=0||p.gold<rc)?'disabled':'')+'>'+(rc<=0?'Nothing worn':'Repair \uD83E\uDE99'+rc)+'</button></div>';
+    h+='<div class="shop-row"><span class="nm">\u2692\uFE0F Repair all worn gear<small>Hammers your weapon, coat, hat, gloves and boots back to full durability.</small></span><button data-repair="1" '+((rc<=0||p.gold<rc)?'disabled':'')+'>'+(rc<=0?'Nothing worn':'Repair \uD83E\uDE99'+rc)+'</button></div>';
     h+='<div class="tree-head">Today\u2019s forge work (depth '+G.deepest+')</div>';
     smithStock().forEach((it,i)=>{
       if(!it) return;
       const price=sellValue(it)*2.5|0;
-      h+='<div class="shop-row"><span class="nm">'+itemIcon(it)+' <span class="nm-'+it.rarity+'">'+it.name+'</span><small>'+(it.dmgLo!=null?it.dmgLo+'\u2013'+it.dmgHi+' damage':it.armorBase?it.armorBase+' armor':'')+(it.affixes.length?' \u00B7 '+it.affixes.map(a=>a.t(a.v)).join(', '):'')+'</small></span>'
+      h+='<div class="shop-row"><span class="nm" data-tipstock="'+i+'">'+itemIcon(it)+' <span class="nm-'+it.rarity+'">'+it.name+'</span><small>'+(it.dmgLo!=null?it.dmgLo+'\u2013'+it.dmgHi+' damage':it.armorBase?it.armorBase+' armor':'')+(it.affixes.length?' \u00B7 '+it.affixes.map(a=>a.t(a.v)).join(', '):'')+'</small></span>'
         +'<button data-stock="'+i+'" '+(p.gold<price?'disabled':'')+'>Buy \uD83E\uDE99'+price+'</button></div>';
     });
+    }
+    if(tab==='arcanum'){
     h+='<div class="tree-head">The Arcanum \u2014 witch ash work</div>';
     h+='<div class="shop-note">Ash from the coven\u2019s strangest dead, hammered into honest steel. Bag items only.</div>';
     let anyCraft=false;
@@ -3251,7 +3514,7 @@ function openShop(id){
       const canT=it.rarity==='common';
       const canR=it.affixes.length>0;
       const canA=it.rarity==='magic'&&it.affixes.length<4;
-      h+='<div class="shop-row"><span class="nm">'+itemIcon(it)+' <span class="nm-'+it.rarity+'">'+it.name+'</span><small>'+it.affixes.map(a=>a.t(a.v)).join(', ')+'</small></span><span style="display:flex;gap:.3rem">'
+      h+='<div class="shop-row"><span class="nm" data-tipbag="'+i+'">'+itemIcon(it)+' <span class="nm-'+it.rarity+'">'+it.name+'</span><small>'+it.affixes.map(a=>a.t(a.v)).join(', ')+'</small></span><span style="display:flex;gap:.3rem">'
         +(canT?'<button data-craft="t" data-i="'+i+'" '+((p.ash<2||p.gold<30)?'disabled':'')+' title="Transmute to enchanted: 2 ash + 30g">T</button>':'')
         +(canR?'<button data-craft="r" data-i="'+i+'" '+((p.ash<3||p.gold<40)?'disabled':'')+' title="Reroll enchantment strengths: 3 ash + 40g">R</button>':'')
         +(canA?'<button data-craft="a" data-i="'+i+'" '+((p.ash<5||p.gold<80)?'disabled':'')+' title="Augment with a new enchantment: 5 ash + 80g">A</button>':'')
@@ -3259,6 +3522,8 @@ function openShop(id){
     });
     if(!anyCraft) h+='<div class="shop-note">Nothing on you that the ash will take to.</div>';
     h+='<div class="shop-note" style="font-size:.68rem">T \u2014 Transmute common \u2192 enchanted (2 ash, 30g) \u00B7 R \u2014 Reroll values (3 ash, 40g) \u00B7 A \u2014 Augment +1 enchantment (5 ash, 80g)</div>';
+    }
+    if(tab==='socket'){
     h+='<div class="tree-head">Socketry \u2014 hexstones</div>';
     {
       const gems=p.bag.map((it2,i2)=>({it:it2,i:i2})).filter(x=>x.it.gem);
@@ -3272,8 +3537,12 @@ function openShop(id){
           +'<button data-gset="'+g.i+'" '+(p.gold<25?'disabled':'')+'>Set \uD83E\uDE9925</button></span></div>';
       });
     }
-    h+=sellSection();
+    }
+    if(tab==='sell') h+=sellSection();
   } else if(id==='merchant'){
+    const tab=(G.shopTab&&G.shopTab[id])||'goods';
+    h+=shopTabs(id,[['goods','Goods'],['pets','Creatures'],['sell','Sell']]);
+    if(tab==='goods'){
     h+='<div class="shop-row"><span class="nm">\uD83D\uDCDC Scroll of Escape<small>Opens a portal to Salem that waits to carry you back. Stacks in the satchel.</small></span><button data-cons="scroll" '+(p.gold<40?'disabled':'')+'>Buy \uD83E\uDE9940</button></div>';
     h+='<div class="shop-row"><span class="nm">\uD83E\uDDF4 Vial of Holy Water<small>Shatter at your feet: heavy damage and a long stun nearby.</small></span><button data-cons="holy" '+(p.gold<60?'disabled':'')+'>Buy \uD83E\uDE9960</button></div>';
     h+='<div class="shop-row"><span class="nm">\uD83E\uDDE8 Witchfire Bomb<small>A rush of green fire that sets everything near you alight.</small></span><button data-cons="bomb" '+(p.gold<45?'disabled':'')+'>Buy \uD83E\uDE9945</button></div>';
@@ -3286,12 +3555,15 @@ function openShop(id){
       h+='<div class="shop-row"><span class="nm">⚖️ Indictment of the Hollows, Tier 1<small>“Filed by the parish against a floor that should not exist. Somebody has to serve it.”</small></span>'
         +'<button data-writ="1" '+(p.gold<250?'disabled':'')+'>Buy 🪙250</button></div>';
     }
+    }
+    if(tab==='pets'){
     h+='<div class="tree-head">Loyal creatures (common stock only)</div>';
     PETS.forEach(d=>{
       h+='<div class="shop-row"><span class="nm">'+d.glyph2+' '+d.n+'<small>'+d.d+'</small></span><button data-pet="'+d.id+'" '+(p.gold<150?'disabled':'')+'>Buy \uD83E\uDE99150</button></div>';
     });
     h+='<div class="shop-note">\u201CThe finer beasts? Those you\u2019ll have to take from the coven\u2019s own hands.\u201D</div>';
-    h+=sellSection();
+    }
+    if(tab==='sell') h+=sellSection();
   } else if(id==='abigail'){
     h+='<div class="shop-note">She is watching the rope sway. It is just rope now.</div>';
     h+='<div class="shop-note">“Two hundred years I kept that chair for somebody who would read the whole of it. You kept the appointment. Most people only keep the hangings.”</div>';
@@ -3304,7 +3576,7 @@ function openShop(id){
     G.abbyStock.forEach((g,i)=>{
       if(!g) return;
       const price=90*g.tier;
-      h+='<div class="shop-row"><span class="nm">💠 <span class="nm-'+g.rarity+'">'+g.name+'</span><small>weapon: '+gemText(g.gem,g.tier,'weapon')+' · coat: '+gemText(g.gem,g.tier,'armor')+' · hat: '+gemText(g.gem,g.tier,'hat')+'</small></span>'
+      h+='<div class="shop-row"><span class="nm" data-tipabby="'+i+'">💠 <span class="nm-'+g.rarity+'">'+g.name+'</span><small>weapon: '+gemText(g.gem,g.tier,'weapon')+' · coat: '+gemText(g.gem,g.tier,'armor')+' · hat: '+gemText(g.gem,g.tier,'hat')+'</small></span>'
         +'<button data-abby="'+i+'" '+(p.gold<price?'disabled':'')+'>Buy 🪙'+price+'</button></div>';
     });
     h+='<div class="shop-note">“Go on, little lamp. The house is only a house. The town is only a town. That was the whole trick of it, in the end — they always were.”</div>';
@@ -3322,6 +3594,25 @@ function openShop(id){
   }
   h+=questSection(id);
   body.innerHTML=h;
+  body.querySelectorAll('canvas[data-pt]').forEach(drawPortrait);
+  body.querySelectorAll('.shop-tabs button').forEach(b=>{
+    b.onclick=()=>{ G.shopTab=G.shopTab||{}; G.shopTab[id]=b.dataset.tab; sfx('click'); hideTooltip(); openShop(id); };
+  });
+  body.querySelectorAll('[data-tipstock]').forEach(el=>{
+    const it=G.shopStock&&G.shopStock[+el.dataset.tipstock]; if(!it) return;
+    el.onmouseenter=ev=>showTextTooltip(itemTooltipHTML(it,it.slot?'shop':null),ev);
+    el.onmouseleave=hideTooltip;
+  });
+  body.querySelectorAll('[data-tipbag]').forEach(el=>{
+    const it=p.bag[+el.dataset.tipbag]; if(!it) return;
+    el.onmouseenter=ev=>showTextTooltip(itemTooltipHTML(it),ev);
+    el.onmouseleave=hideTooltip;
+  });
+  body.querySelectorAll('[data-tipabby]').forEach(el=>{
+    const it=G.abbyStock&&G.abbyStock[+el.dataset.tipabby]; if(!it) return;
+    el.onmouseenter=ev=>showTextTooltip(itemTooltipHTML(it),ev);
+    el.onmouseleave=hideTooltip;
+  });
   body.querySelectorAll('button[data-buy]').forEach(btn=>{
     btn.onclick=()=>{ const k=btn.dataset.buy, cost=k==='hp'?12+G.deepest*3:10+G.deepest*2;
       if(p.gold<cost) return; p.gold-=cost;
@@ -3541,7 +3832,7 @@ function render(){
     const [sx,sy]=isoPos(x,y);
     if(sx<-TW||sx>VW+TW||sy<-90||sy>VH+90) continue;
     const t=map[y][x];
-    const l=clamp(lit[y][x],0,1);
+    const l=clamp(litAt(x,y),0,1);
     const dim=0.22+0.78*l;
     if(t===T_WALL){
       drawWall(sx,sy,x,y,dim,band,TH_C);
@@ -3552,6 +3843,15 @@ function render(){
       drawTile(sx,sy,shade(base,dim+v),'rgba(0,0,0,.35)');
       const hsh=((x*73856093)^(y*19349663))>>>0;
       if(t===T_FLOOR) drawFloorPattern(band,sx,sy,dim,hsh);
+      // contact shadow where a wall meets the boards
+      if(x>0&&map[y][x-1]===T_WALL){
+        ctx.fillStyle='rgba(0,0,0,'+(0.22*dim).toFixed(3)+')';
+        ctx.beginPath();ctx.moveTo(sx-TW/2,sy);ctx.lineTo(sx,sy-TH/2);ctx.lineTo(sx,sy-TH/2+7);ctx.lineTo(sx-TW/2+12,sy+2);ctx.closePath();ctx.fill();
+      }
+      if(y>0&&map[y-1][x]===T_WALL){
+        ctx.fillStyle='rgba(0,0,0,'+(0.22*dim).toFixed(3)+')';
+        ctx.beginPath();ctx.moveTo(sx+TW/2,sy);ctx.lineTo(sx,sy-TH/2);ctx.lineTo(sx,sy-TH/2+7);ctx.lineTo(sx+TW/2-12,sy+2);ctx.closePath();ctx.fill();
+      }
       if(t===T_STAIRS){
         // glowing descent — blood-red while a boss seals it
         const g=0.6+0.4*Math.sin(G.time*3);
@@ -3580,7 +3880,7 @@ function render(){
   for(const st of G.stains){
     const X=Math.round(st.x),Y=Math.round(st.y);
     if(!seen[Y]?.[X]) continue;
-    const l=lit[Y][X]; if(l<=0.02) continue;
+    const l=litAt(X,Y); if(l<=0.02) continue;
     const [ax,ay]=isoPos(st.x,st.y);
     ctx.fillStyle='rgba(74,13,18,'+(0.30*(0.22+0.78*l)).toFixed(3)+')';
     ctx.beginPath();ctx.ellipse(ax,ay,11*st.r,5*st.r,0,0,7);ctx.fill();
@@ -3626,7 +3926,7 @@ function render(){
   for(const dc of G.decoys) ents.push({d:dc.x+dc.y,draw:()=>drawDecoy(dc)});
   if(G.event&&seen[Math.round(G.event.y)]?.[Math.round(G.event.x)])
     ents.push({d:G.event.x+G.event.y,draw:()=>drawEvent(G.event)});
-  for(const e of G.enemies) if(!e.dead&&seen[Math.round(e.y)]?.[Math.round(e.x)]&&lit[Math.round(e.y)][Math.round(e.x)]>0.02)
+  for(const e of G.enemies) if(!e.dead&&seen[Math.round(e.y)]?.[Math.round(e.x)]&&litAt(Math.round(e.x),Math.round(e.y))>0.02)
     ents.push({d:e.x+e.y,draw:()=>drawEnemy(e)});
   for(const d of G.drops) if(seen[Math.round(d.y)]?.[Math.round(d.x)])
     ents.push({d:d.x+d.y,draw:()=>drawDrop(d)});
@@ -3640,11 +3940,19 @@ function render(){
     else if(G.floor===G.portal.floor) ents.push({d:G.portal.x+G.portal.y,draw:()=>drawPortal(G.portal.x,G.portal.y)});
   }
   ents.sort((a,b)=>a.d-b.d).forEach(e=>e.draw());
-  // projectiles & fx
+  // projectiles & fx — a comet streak behind every shot
   for(const pr of G.projs){
     const [sx,sy]=isoPos(pr.x,pr.y);
-    ctx.fillStyle=pr.color; ctx.shadowColor=pr.color; ctx.shadowBlur=12;
-    ctx.beginPath(); ctx.arc(sx,sy-14,4,0,7); ctx.fill(); ctx.shadowBlur=0;
+    const [tx2,ty2]=isoPos(pr.x-pr.vx*0.08,pr.y-pr.vy*0.08);
+    ctx.shadowColor=pr.color; ctx.shadowBlur=10;
+    ctx.strokeStyle=pr.color; ctx.globalAlpha=0.5; ctx.lineWidth=2.6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(tx2,ty2-14); ctx.lineTo(sx,sy-14); ctx.stroke();
+    ctx.globalAlpha=1; ctx.lineCap='butt';
+    ctx.fillStyle=pr.color;
+    ctx.beginPath(); ctx.arc(sx,sy-14,4,0,7); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.75)';
+    ctx.beginPath(); ctx.arc(sx,sy-14,1.6,0,7); ctx.fill();
+    ctx.shadowBlur=0;
   }
   for(const f of G.fx){
     if(f.beam){ const [a,b]=isoPos(f.beam[0],f.beam[1]),[c2,d2]=[isoPos(f.beam[2],f.beam[3])][0];
@@ -3768,6 +4076,7 @@ function render(){
   ctx.fillStyle=BAND_TINT[band]; ctx.fillRect(0,0,VW,VH);
   drawMinimap();
   if(p.hitFlash>0){ ctx.fillStyle=`rgba(156,39,51,${p.hitFlash*1.2})`; ctx.fillRect(0,0,VW,VH); }
+  if(G.fade>0){ ctx.fillStyle='rgba(5,6,5,'+clamp(G.fade,0,1).toFixed(3)+')'; ctx.fillRect(0,0,VW,VH); }
 }
 /* ---------- walls & floors of the house ---------- */
 function drawWall(sx,sy,x,y,dim,band,TH_C){
@@ -4526,6 +4835,110 @@ function drawTurret(t){
 function drawShadow(sx,sy,r){ ctx.fillStyle='rgba(0,0,0,.4)';
   ctx.beginPath();ctx.ellipse(sx,sy+2,r,r*0.45,0,0,7);ctx.fill(); }
 
+/* what the investigator is actually wearing, read off the equipment */
+function gearLook(p){
+  const w=p.equip.weapon, a=p.equip.armor, h=p.equip.hat;
+  const rc=r=>r==='unique'?'#f0bd4e':r==='set'?'#7ddf8a':r==='magic'?'#7db1ff':null;
+  const look={weap:'fist', wGlow:w?rc(w.rarity):null,
+    hat:null, hGlow:h?rc(h.rarity):null,
+    coat:p.c.coat||'#2a2d33', trim:p.c.trim||p.c.glyphColor,
+    studs:false, ribs:false, plague:false};
+  if(w){ const n=(w.baseName||w.name||'').toLowerCase();
+    look.weap=n.includes('coachgun')?'gun':(n.includes('rod')||n.includes('baton'))?'rod':
+      n.includes('knife')?'knife':n.includes('cane')?'cane':n.includes('cudgel')?'club':
+      n.includes('mattock')?'mattock':n.includes('rapier')?'rapier':'sabre';
+  }
+  if(h){ const n=(h.baseName||h.name||'').toLowerCase();
+    look.hat=(n.includes('bowler')||n.includes('brim'))?'bowler':n.includes('veil')?'veil':
+      n.includes('capotain')?'capotain':n.includes('periwig')?'wig':'topper';
+  }
+  if(a){ const n=(a.baseName||a.name||'').toLowerCase();
+    if(n.includes('brigandine')||n.includes('vigil')){ look.coat='#2c3340'; look.studs=true; }
+    else if(n.includes('corset')){ look.coat='#3a2a26'; look.ribs=true; }
+    else if(n.includes('leather')||n.includes('waistcoat')){ look.coat='#4a3a26'; }
+    else if(n.includes('mourning')||n.includes('shroud')){ look.coat='#1c1a20'; }
+    else if(n.includes('plague')||n.includes('habit')){ look.coat='#2c3a2c'; look.plague=true; }
+    else if(n.includes('mantle')){ look.coat='#33283e'; }
+    else look.coat='#3a342c';
+    const ag=rc(a.rarity); if(ag) look.trim=ag;
+  }
+  return look;
+}
+function drawHeldWeapon(gl,p){
+  const t=G.time;
+  const glow=()=>{ if(gl.wGlow){ ctx.shadowColor=gl.wGlow; ctx.shadowBlur=7; } };
+  const unglow=()=>{ ctx.shadowBlur=0; };
+  switch(gl.weap){
+    case 'rod':
+      ctx.strokeStyle='#c89b3c'; ctx.lineWidth=2.4;
+      glow(); ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(13,0);ctx.stroke(); unglow();
+      ctx.strokeStyle='#8a6c2c'; ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(13.5,0,4.4,0,7);ctx.stroke();
+      { const g=0.6+0.4*Math.sin(t*9);
+        ctx.fillStyle=`rgba(123,227,196,${g.toFixed(3)})`; ctx.beginPath();ctx.arc(14,0,2.8,0,7);ctx.fill(); }
+      if(Math.random()<0.25){ ctx.strokeStyle='rgba(159,232,255,.7)'; ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(14+rand(-6,6),rand(-6,6));ctx.stroke(); }
+      break;
+    case 'knife':
+      ctx.strokeStyle='#9b9b93'; ctx.lineWidth=2.2;
+      glow(); ctx.beginPath();ctx.moveTo(2,0);ctx.lineTo(9.5,0);ctx.stroke(); unglow();
+      ctx.strokeStyle='#5d2a30'; ctx.lineWidth=2.6;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(3,0);ctx.stroke();
+      break;
+    case 'cane':
+      ctx.strokeStyle='#1c1a16'; ctx.lineWidth=2.2;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(13,-1);ctx.stroke();
+      { const g=0.5+0.4*Math.sin(t*5);
+        glow();
+        ctx.fillStyle=p.classId==='mesmerist'?`rgba(199,139,242,${g.toFixed(3)})`:'#c89b3c';
+        ctx.beginPath();ctx.arc(14,-1,2.4,0,7);ctx.fill(); unglow();
+        ctx.strokeStyle='#c89b3c'; ctx.lineWidth=0.9;
+        ctx.beginPath();ctx.arc(14,-1,3.4,0,7);ctx.stroke(); }
+      break;
+    case 'club':
+      ctx.fillStyle='#6b5530';
+      glow(); ctx.beginPath();ctx.moveTo(0,1.4);ctx.lineTo(12,3);ctx.lineTo(13.5,0);ctx.lineTo(12,-3);ctx.lineTo(0,-1.4);ctx.closePath();ctx.fill(); unglow();
+      ctx.strokeStyle='#3a2c1e'; ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(9,-2.6);ctx.lineTo(9,2.6);ctx.stroke();
+      break;
+    case 'mattock':
+      ctx.strokeStyle='#5a4628'; ctx.lineWidth=2.2;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(13,-1);ctx.stroke();
+      ctx.fillStyle='#8a8a82';
+      glow(); ctx.beginPath();ctx.moveTo(11,-6);ctx.lineTo(16,-1);ctx.lineTo(11,3);ctx.lineTo(12.6,-1);ctx.closePath();ctx.fill(); unglow();
+      break;
+    case 'rapier':
+      glow();
+      ctx.strokeStyle='#c8c8c0'; ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.moveTo(3,0);ctx.lineTo(19,-2);ctx.stroke();
+      unglow();
+      ctx.strokeStyle='#c89b3c'; ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.arc(2.4,0,2.6,0.8,5.2);ctx.stroke();
+      break;
+    case 'gun':
+      ctx.fillStyle='#4a3a26';
+      ctx.beginPath();ctx.moveTo(-2,2.6);ctx.lineTo(4,1.6);ctx.lineTo(4,-1.6);ctx.lineTo(-2,-0.4);ctx.closePath();ctx.fill();
+      glow();
+      ctx.strokeStyle='#3a3f44'; ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.moveTo(3,-1);ctx.lineTo(15,-2.2);ctx.moveTo(3,1);ctx.lineTo(15,0.2);ctx.stroke();
+      unglow();
+      ctx.fillStyle='#15130f'; ctx.fillRect(14.4,-3,1.6,1.6); ctx.fillRect(14.4,-0.6,1.6,1.6);
+      break;
+    case 'fist':
+      ctx.strokeStyle='#16140f'; ctx.lineWidth=2.4;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(6,1);ctx.stroke();
+      break;
+    default: // sabre and the headsman's falchion
+      glow();
+      ctx.strokeStyle='#a8a89e'; ctx.lineWidth=2.4;
+      ctx.beginPath();ctx.moveTo(2,1);ctx.quadraticCurveTo(10,-1,16,-4);ctx.stroke();
+      unglow();
+      ctx.strokeStyle='#d8d8ce'; ctx.lineWidth=0.8;
+      ctx.beginPath();ctx.moveTo(3,0.4);ctx.quadraticCurveTo(10,-1.6,15.4,-4.2);ctx.stroke();
+      ctx.strokeStyle='#c89b3c'; ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.arc(2,0,2.8,1.2,4.4);ctx.stroke();
+  }
+}
 function drawPlayer(p){
   const [sx,sy]=isoPos(p.x,p.y);
   const moving=p.path.length>0;
@@ -4534,8 +4947,9 @@ function drawPlayer(p){
   ctx.save(); ctx.translate(sx,sy-13+bob); ctx.scale(p.dir,1);
   if(p.hitFlash>0){ctx.filter='brightness(2.2)';}
   const c=p.c;
+  const gl=gearLook(p);
   const leg=Math.sin(p.anim)*4.2*(moving?1:0.15);
-  const skin=c.skin||'#cfae8b', coat=c.coat||'#2a2d33', trim=c.trim||c.glyphColor;
+  const skin=c.skin||'#cfae8b', coat=gl.coat, trim=gl.trim;
   // trousers & boots
   ctx.strokeStyle='#16140f'; ctx.lineWidth=4;
   ctx.beginPath();ctx.moveTo(-3,4);ctx.lineTo(-3-leg,13);ctx.moveTo(3,4);ctx.lineTo(3+leg,13);ctx.stroke();
@@ -4579,66 +4993,63 @@ function drawPlayer(p){
   ctx.fillStyle=trim;
   if(p.classId==='witchfinder'){ for(const yy of [-8,-4,0]){ ctx.fillRect(-2.6,yy,1.4,1.4); ctx.fillRect(1.4,yy,1.4,1.4); } }
   else for(const yy of [-8,-4.5,-1]) ctx.fillRect(-0.7,yy,1.4,1.4);
+  // the cut of the coat they actually wear
+  if(gl.studs){ ctx.fillStyle=trim;
+    for(const yy of [-9,-5.5,-2]) for(const xx of [-5.5,5]) ctx.fillRect(xx,yy,1.2,1.2); }
+  if(gl.ribs){ ctx.strokeStyle=trim; ctx.lineWidth=0.9;
+    for(const yy of [-9,-6,-3]){ ctx.beginPath();ctx.moveTo(-6,yy);ctx.quadraticCurveTo(0,yy+1.6,6,yy);ctx.stroke(); } }
+  if(gl.plague){ ctx.fillStyle=shade(coat,1.4);
+    ctx.beginPath();ctx.moveTo(-6.5,-12);ctx.lineTo(6.5,-12);ctx.lineTo(4,-7.5);ctx.lineTo(-4,-7.5);ctx.closePath();ctx.fill(); }
   // belt
   ctx.fillStyle='#15130f'; ctx.fillRect(-8,-1.4,16,2.6);
   ctx.fillStyle=trim; ctx.fillRect(-1.4,-1.6,2.8,3);
   // head
   ctx.fillStyle=skin; ctx.beginPath();ctx.arc(0,-17,5.4,0,7);ctx.fill();
   ctx.fillStyle=shade(skin,0.72); ctx.fillRect(3.2,-19,1.8,4.2);
-  // hats & faces of the four
-  ctx.fillStyle='#15130f';
-  if(p.classId==='witchfinder'){
-    ctx.fillRect(-8.5,-22,17,2.6); ctx.fillRect(-5,-31,10,9.6);
-    ctx.fillStyle=trim; ctx.fillRect(-5,-24.6,10,1.6);
-    ctx.fillStyle='#0e0d0a'; ctx.fillRect(-0.8,-24.9,2.2,2.2);
-  } else if(p.classId==='aetherist'){
-    ctx.fillRect(-7,-22,14,2.4); ctx.fillRect(-4.4,-33,8.8,11);
-    ctx.strokeStyle='#6b5526'; ctx.lineWidth=1.2;
-    ctx.beginPath();ctx.moveTo(-4.4,-23.5);ctx.lineTo(4.4,-23.5);ctx.stroke();
+  // class marks, worn whatever the hat
+  if(p.classId==='aetherist'){
     ctx.fillStyle='#3a3f44'; ctx.fillRect(-5,-20.2,4.4,2.8); ctx.fillRect(0.8,-20.2,4.4,2.8);
     ctx.fillStyle='#7be3c4'; ctx.fillRect(-4.3,-19.7,3,1.8); ctx.fillRect(1.5,-19.7,3,1.8);
   } else if(p.classId==='resurrectionist'){
-    ctx.beginPath();ctx.arc(0,-21,6.4,Math.PI,0);ctx.fill(); ctx.fillRect(-8,-21.4,16,2);
     ctx.fillStyle='#5d2a30'; ctx.fillRect(-6,-13,12,3);
-  } else {
-    ctx.fillRect(-7.5,-22,15,2.4); ctx.fillRect(-4.6,-35,9.2,13);
-    ctx.fillStyle='#5a3a7a'; ctx.fillRect(-4.6,-24.6,9.2,2);
+  } else if(p.classId==='mesmerist'){
     ctx.strokeStyle='#c89b3c'; ctx.lineWidth=0.9;
     ctx.beginPath();ctx.arc(2.4,-16.6,1.8,0,7);ctx.stroke();
     ctx.beginPath();ctx.moveTo(3.6,-15.4);ctx.quadraticCurveTo(5.5,-12,4,-9);ctx.stroke();
   }
-  // weapon arm
+  // the hat they actually wear (class hat when bare-headed)
+  const hatKind=gl.hat||({witchfinder:'capotain',aetherist:'topper',resurrectionist:'bowler',mesmerist:'topper'})[p.classId];
+  const band=gl.hGlow||(p.classId==='mesmerist'&&!gl.hat?'#5a3a7a':trim);
+  ctx.fillStyle='#15130f';
+  if(hatKind==='bowler'){
+    ctx.beginPath();ctx.arc(0,-21,6.4,Math.PI,0);ctx.fill(); ctx.fillRect(-8,-21.4,16,2);
+    ctx.fillStyle=band; ctx.fillRect(-6.2,-22.8,12.4,1.4);
+  } else if(hatKind==='capotain'){
+    ctx.fillRect(-8.5,-22,17,2.6);
+    ctx.beginPath();ctx.moveTo(-5,-22);ctx.lineTo(-3.8,-31);ctx.lineTo(3.8,-31);ctx.lineTo(5,-22);ctx.closePath();ctx.fill();
+    ctx.fillStyle=band; ctx.fillRect(-4.8,-24.6,9.6,1.6);
+    ctx.fillStyle='#0e0d0a'; ctx.fillRect(-0.8,-24.9,2.2,2.2);
+  } else if(hatKind==='wig'){
+    ctx.fillStyle='#d8d4c8';
+    ctx.beginPath();ctx.arc(-4,-21,3.4,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(4,-21,3.4,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(0,-23.4,3.8,0,7);ctx.fill();
+    ctx.fillRect(-6.8,-21,2.6,7); ctx.fillRect(4.2,-21,2.6,7);
+  } else if(hatKind==='veil'){
+    ctx.fillStyle='rgba(20,18,24,.85)';
+    ctx.beginPath();ctx.moveTo(-6.5,-22);ctx.quadraticCurveTo(0,-26,6.5,-22);ctx.lineTo(7.5,-6);ctx.lineTo(4,-8);ctx.lineTo(-4,-8);ctx.lineTo(-7.5,-6);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#15130f'; ctx.fillRect(-6.5,-22.8,13,1.6);
+  } else { // topper / stovepipe
+    const tall=(p.classId==='mesmerist'&&!gl.hat)?13:11;
+    ctx.fillRect(-7.4,-22,14.8,2.4); ctx.fillRect(-4.5,-22-tall,9,tall);
+    ctx.fillStyle=band; ctx.fillRect(-4.5,-24.6,9,2);
+    if(p.classId==='aetherist'){ ctx.strokeStyle='#6b5526'; ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(-4.4,-23.5);ctx.lineTo(4.4,-23.5);ctx.stroke(); }
+  }
+  // the weapon they actually carry
   const swing=p.castT>0? -1.1 : Math.sin(p.anim*0.5)*0.12;
   ctx.save(); ctx.translate(6,-8); ctx.rotate(0.6+swing);
-  if(p.classId==='aetherist'){
-    ctx.strokeStyle='#c89b3c'; ctx.lineWidth=2.4;
-    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(13,0);ctx.stroke();
-    ctx.strokeStyle='#8a6c2c'; ctx.lineWidth=1;
-    ctx.beginPath();ctx.arc(13.5,0,4.4,0,7);ctx.stroke();
-    const g=0.6+0.4*Math.sin(G.time*9);
-    ctx.fillStyle=`rgba(123,227,196,${g.toFixed(3)})`; ctx.beginPath();ctx.arc(14,0,2.8,0,7);ctx.fill();
-    if(Math.random()<0.25){ ctx.strokeStyle='rgba(159,232,255,.7)'; ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(14+rand(-6,6),rand(-6,6));ctx.stroke(); }
-  } else if(p.classId==='resurrectionist'){
-    ctx.strokeStyle='#9b9b93'; ctx.lineWidth=2.2;
-    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(9,0);ctx.stroke();
-    ctx.strokeStyle='#5d2a30'; ctx.lineWidth=2.6;
-    ctx.beginPath();ctx.moveTo(1,0);ctx.lineTo(3.6,0);ctx.stroke();
-  } else if(p.classId==='mesmerist'){
-    ctx.strokeStyle='#1c1a16'; ctx.lineWidth=2.2;
-    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(13,-1);ctx.stroke();
-    const g=0.5+0.4*Math.sin(G.time*5);
-    ctx.fillStyle=`rgba(199,139,242,${g.toFixed(3)})`; ctx.beginPath();ctx.arc(14,-1,2.4,0,7);ctx.fill();
-    ctx.strokeStyle='#c89b3c'; ctx.lineWidth=0.9;
-    ctx.beginPath();ctx.arc(14,-1,3.4,0,7);ctx.stroke();
-  } else {
-    ctx.strokeStyle='#a8a89e'; ctx.lineWidth=2.4;
-    ctx.beginPath();ctx.moveTo(2,1);ctx.quadraticCurveTo(10,-1,16,-4);ctx.stroke();
-    ctx.strokeStyle='#d8d8ce'; ctx.lineWidth=0.8;
-    ctx.beginPath();ctx.moveTo(3,0.4);ctx.quadraticCurveTo(10,-1.6,15.4,-4.2);ctx.stroke();
-    ctx.strokeStyle='#c89b3c'; ctx.lineWidth=1.6;
-    ctx.beginPath();ctx.arc(2,0,2.8,1.2,4.4);ctx.stroke();
-  }
+  drawHeldWeapon(gl,p);
   ctx.restore();
   ctx.restore();
   if(p.buffs.vicious>0){ ctx.strokeStyle='rgba(207,214,221,.6)'; ctx.lineWidth=1.5;
@@ -5299,7 +5710,7 @@ function itemTooltipHTML(it,compare){
   if(compare){
     const cur=G.player.equip[it.slot];
     if(cur&&cur.id!==it.id) h+='<div class="hint">Worn: '+cur.name+(cur.dmgLo!=null?' ('+cur.dmgLo+'\u2013'+cur.dmgHi+')':cur.armorBase?' ('+cur.armorBase+' armor)':'')+'</div>';
-    h+='<div class="hint">Click to '+(compare==='bag'?'equip':'unequip')+'</div>';
+    if(compare!=='shop') h+='<div class="hint">Click to '+(compare==='bag'?'equip':'unequip')+'</div>';
   }
   return h;
 }
@@ -5439,24 +5850,61 @@ function renderTree(){
   document.getElementById('tree-sub').textContent=
     p.c.name+' \u00B7 '+(p.skillPts||0)+' skill point'+((p.skillPts||0)===1?'':'s')+' unspent';
   const b=document.getElementById('tree-body');
-  let h='<div class="pts-note">One skill point per level. Branches unlock in order.</div>';
+  let h='';
+  h+=(p.skillPts||0)>0
+    ?'<div class="pts-note">'+p.skillPts+' point'+(p.skillPts>1?'s':'')+' to inscribe \u2014 click a glowing seal</div>'
+    :'<div class="pts-note" style="color:var(--parchment-dim)">One point per level. Seals within a branch open in order.</div>';
+  h+='<div class="tree-head">The Arts, as currently practiced</div>';
+  for(const s of p.c.skills){
+    const locked=s.locked&&treeVal(p,'unlock_'+s.id)<=0;
+    const dmg=s.coef>0?Math.round(s.coef*(1+treeVal(p,'sd_'+s.id)/100)*100)+'% weapon damage':'craft & cunning';
+    const cd=(s.cd*Math.max(.3,1-treeVal(p,'cdr_'+s.id)/100)*(1-(p.cdr||0)/100)).toFixed(1);
+    h+='<div class="gr-skill"><span class="gly">'+s.glyph+'</span><span class="nm">'
+      +s.key+' \u00B7 '+s.name+(locked?' <span style="color:#9aa39b;font-size:.68rem">(unlock below)</span>':'')
+      +'<br><span class="dm">'+dmg+' \u00B7 '+cd+'s \u00B7 '+Math.ceil(s.cost*(p.costMul||1))+' aether</span></span></div>';
+  }
   for(const br of TREES[p.classId]){
-    h+='<div class="tree-head">'+br.br+'</div>';
+    h+='<div class="tree-head">'+br.br+'</div><div class="gr-rail">';
     br.nodes.forEach((nd,i)=>{
       const r=p.tree[nd.id]||0;
       const locked=i>0&&!((p.tree[br.nodes[i-1].id]||0)>0);
-      h+='<div class="tree-node stat-row'+(locked?' locked':'')+'">'
-        +'<span>'+nd.n+'<small>'+nd.d+'</small></span>'
-        +'<span><span class="v">'+r+'/'+nd.max+'</span>'
-        +'<button data-node="'+nd.id+'" '+((locked||r>=nd.max||(p.skillPts||0)<=0)?'disabled':'')+'>+</button></span></div>';
+      const can=!locked&&r<nd.max&&(p.skillPts||0)>0;
+      if(i>0) h+='<div class="gr-link'+(!locked?' on':'')+'"></div>';
+      h+='<div class="gr-cell"><div class="gr-node'
+        +(locked?' locked':r>=nd.max?' maxed':can?' can':r>0?' has':'')
+        +'" data-node="'+nd.id+'" data-br="'+br.br.replace(/"/g,'')+'">'
+        +(r>=nd.max?'\u2726':r||'')
+        +'<span class="gr-pips">'+Array.from({length:nd.max},(_,k)=>'<i class="'+(k<r?'f':'')+'"></i>').join('')+'</span>'
+        +'</div><span class="gr-name">'+nd.n+'</span></div>';
     });
+    h+='</div>';
   }
+  h+='<div class="shop-note" style="font-size:.7rem">Hover a seal to read its writ. Old Meg, the Sin-Eater, can unlearn everything \u2014 for a price.</div>';
   b.innerHTML=h;
-  b.querySelectorAll('button[data-node]').forEach(btn=>{
-    btn.onclick=()=>{ if((p.skillPts||0)<=0) return;
-      const id=btn.dataset.node;
-      p.tree[id]=(p.tree[id]||0)+1; p.skillPts--;
-      recalc(p); renderTree(); renderChar(); buildSkillBar(); updateHud(); sfx('level'); saveGame(); };
+  const lookup={};
+  for(const br of TREES[p.classId]) for(const nd of br.nodes) lookup[nd.id]={nd,br:br.br};
+  b.querySelectorAll('.gr-node').forEach(el=>{
+    const {nd,br}=lookup[el.dataset.node]||{};
+    if(!nd) return;
+    el.onmouseenter=ev=>{
+      const r=p.tree[nd.id]||0;
+      const locked=el.classList.contains('locked');
+      showTextTooltip(
+        '<div class="iname" style="color:var(--brass)">'+nd.n+'</div>'
+        +'<div class="itype">'+br+' \u00B7 rank '+r+' of '+nd.max+'</div>'
+        +'<div class="base">'+nd.d+'</div>'
+        +(locked?'<div class="hint">Inscribe the previous seal first</div>'
+          :r>=nd.max?'<div class="hint">Mastered</div>'
+          :(p.skillPts||0)>0?'<div class="hint">Click to inscribe</div>'
+          :'<div class="hint">No points to spend \u2014 they come with levels</div>'),ev);
+    };
+    el.onmouseleave=hideTooltip;
+    el.onclick=()=>{
+      const r=p.tree[nd.id]||0;
+      if((p.skillPts||0)<=0||el.classList.contains('locked')||r>=nd.max) return;
+      p.tree[nd.id]=r+1; p.skillPts--;
+      recalc(p); renderTree(); renderChar(); buildSkillBar(); updateHud(); sfx('level'); saveGame();
+    };
   });
 }
 
@@ -5476,7 +5924,9 @@ function buildTitle(){
     card.onclick=()=>{ chosenClass=id;
       document.querySelectorAll('.class-card').forEach(x=>x.classList.remove('selected'));
       card.classList.add('selected');
-      document.getElementById('begin-btn').disabled=false; sfx('click'); };
+      document.getElementById('begin-btn').disabled=false; sfx('click');
+      const ac=audio(); if(ac&&ac.state==='suspended') ac.resume();
+      Music.start(); Music.setMode('title'); };
     wrap.appendChild(card);
   }
   document.getElementById('begin-btn').onclick=()=>{ if(chosenClass) startGame(chosenClass,document.getElementById('hc-box').checked); };
@@ -5604,6 +6054,14 @@ document.getElementById('resurrect-btn').onclick=()=>{
 document.getElementById('ending-spare').onclick=()=>resolveFinal(true);
 document.getElementById('ending-end').onclick=()=>resolveFinal(false);
 document.getElementById('esc-resume').onclick=()=>{ document.getElementById('esc-menu').style.display='none'; };
+{
+  const vm=document.getElementById('vol-m'), vs=document.getElementById('vol-s');
+  vm.value=Math.round(VOL.m*100); vs.value=Math.round(VOL.s*100);
+  vm.oninput=()=>{ VOL.m=vm.value/100; Music.setVol(VOL.m); saveVol(); };
+  vs.oninput=()=>{ VOL.s=vs.value/100;
+    if(AC&&AC._sfx) AC._sfx.gain.setTargetAtTime(VOL.s,AC.currentTime,0.1);
+    saveVol(); sfx('click'); };
+}
 document.getElementById('esc-music').onclick=()=>toggleMusic();
 document.getElementById('esc-quit').onclick=async()=>{
   saveGame();
@@ -5616,7 +6074,7 @@ document.getElementById('esc-quit').onclick=async()=>{
   G.state='title';
   try{ SLOT_SAVES[CUR_SLOT]=await Store.get(slotKey(CUR_SLOT)); }catch(e){}
   renderSlots();
-  Music.setMode('town');
+  Music.setMode('title');
   document.getElementById('title-screen').style.display='flex';
 };
 document.getElementById('victory-town').onclick=()=>{
