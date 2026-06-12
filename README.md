@@ -54,7 +54,34 @@ Touch is supported — tap to move and fight, use the corner buttons for panels.
   phantasmal double that baits the dark and bursts, and the Voice of Command
   that sends the weak-willed fleeing. Foes that strike him are transfixed.
 
-Each class has a six-branch Grimoire skill tree and its own draw of the loot pool.
+Each class has four art branches plus **two rival specialization Paths** —
+Pyre or Iron Court, Storm or Machine, Scalpel or Charnel Choir, Silver Tongue
+or Twin Self — full of new mechanics (ricocheting knives, forked lightning,
+multi-coil batteries, taunting skeletons, charmed enemies, twin doubles).
+Sink twelve points into a Path and inscribe its **Mastery** capstone, which
+changes how the class plays and adds a title to your dossier. Skill points
+come faster now (a bonus point every fourth level), and Shift-hovering any
+item compares it against what you're wearing.
+
+## Quests that change you
+
+Every closed investigation now unlocks a permanent power alongside its gold:
+double-strength potions and a larger belt (Prudence), masterwork socket
+drilling at the forge (Ezekiel), free Well-Rested lodging (+10% damage and
+stride after sleeping — the Widow), the Brass Door-Knocker that makes town
+portals reusable (Quill), and from Old Meg: two skill points, free respecs
+forever, and the Indictment trade.
+
+## After the ending: the Second Hanging
+
+Past depth 9 the house stops being polite — enemies harden faster than the
+old curve and elites crowd the deep floors. Beat Abigail and you can begin
+the **Second Hanging (New Game+)**: the mansion re-arms with all quests and
+bosses restored at a much crueler pitch (and again, and again — each Hanging
+stacks), while you keep your level, gear, arts, pages and unlocks, and the
+loot scales up to match. Between Hangings, Indictments, bounties and the
+endless Hollows remain as endgame hunting grounds. Reloading a save also
+offers a one-click "wake at your deepest floor" start.
 
 ## Bosses that fight like they mean it
 

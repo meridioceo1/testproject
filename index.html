@@ -219,12 +219,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);
 .gr-link{height:2px;flex:.7;background:#3a3328;margin-top:18px;min-width:8px}
 .gr-link.on{background:linear-gradient(90deg,var(--brass-dim),var(--brass))}
 .gr-name{font-size:.62rem;color:var(--parchment-dim);text-align:center;margin-top:11px;line-height:1.25;padding:0 .15rem}
+.gr-node.cap{width:42px;height:42px;border-style:double;border-width:3px;font-size:1rem}
+.gr-node.cap.can{border-color:#7ddf8a;color:#bdf2c4;animation:grpulse2 1.6s infinite}
+@keyframes grpulse2{0%,100%{box-shadow:0 0 0 2px #000,0 0 8px rgba(125,223,138,.35)}50%{box-shadow:0 0 0 2px #000,0 0 20px rgba(125,223,138,.75)}}
+.gr-node.cap.maxed{border-color:var(--uniq-gold);color:var(--uniq-gold)}
+.tree-head.path{color:#7ddf8a;border-color:rgba(125,223,138,.3)}
+.tree-head.path .pp{float:right;letter-spacing:.03em;text-transform:none;font-size:.7rem}
 
 .cell{position:relative}
 .cell .qty{position:absolute;right:2px;bottom:1px;font-size:.62rem;color:#ffe9b0;text-shadow:0 0 3px #000;font-style:normal}
 
 /* ---------- stash ---------- */
-#stash-panel{left:50%;right:auto;transform:translateX(-50%);width:min(480px,94vw)}
+#stash-panel{left:.8rem;right:auto;transform:none;width:min(400px,46vw)}
 #stash-panel .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.3rem;margin:.3rem 0 .6rem}
 #stash-panel .cell{aspect-ratio:1;background:#15130e;border:1px solid #2a261c;display:flex;align-items:center;justify-content:center;font-size:1.15rem;cursor:pointer;position:relative}
 #stash-panel .cell:hover{border-color:var(--brass)}
@@ -297,6 +303,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);
 .slot-row .main small{display:block;letter-spacing:.04em;color:var(--parchment-dim);font-style:italic;margin-top:.15rem}
 .slot-row .del{font-family:inherit;background:#1c0f10;border:1px solid #5a2a30;color:#e08a8a;cursor:pointer;padding:0 .7rem}
 .slot-row .del:hover{border-color:var(--blood);color:#ffb3bb}
+.slot-row .deep{font-family:inherit;background:#1c1812;border:1px solid var(--brass-dim);color:var(--brass);cursor:pointer;padding:0 .6rem;font-size:.8rem;letter-spacing:.02em}
+.slot-row .deep:hover{border-color:var(--brass);color:#ffe9b0}
 
 /* ---------- escape menu ---------- */
 #esc-menu{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(4,5,4,.72)}
@@ -345,7 +353,7 @@ body{overscroll-behavior:none;-webkit-touch-callout:none}
   <div id="slot-list"></div>
   <div class="keys-hint">
     Left click — move, attack, pick up, open &nbsp;·&nbsp; 1 / 2 / 3 / 4 — skills at cursor &nbsp;·&nbsp; Q — laudanum &nbsp;·&nbsp; E — aether tonic<br>
-    I — satchel &nbsp;·&nbsp; C — dossier &nbsp;·&nbsp; T — grimoire &nbsp;·&nbsp; J — journal &nbsp;·&nbsp; Tab — map &nbsp;·&nbsp; M — music &nbsp;·&nbsp; Esc — menu &nbsp;·&nbsp; Right click equipped item to unequip
+    I — satchel &nbsp;·&nbsp; C — dossier &nbsp;·&nbsp; T — grimoire &nbsp;·&nbsp; J — journal &nbsp;·&nbsp; Tab — map &nbsp;·&nbsp; Shift — compare with worn gear &nbsp;·&nbsp; M — music &nbsp;·&nbsp; Esc — menu
   </div>
 </div>
 
@@ -423,9 +431,10 @@ body{overscroll-behavior:none;-webkit-touch-callout:none}
 <div id="victory-screen">
   <h2 class="sc">The Coven Is Broken</h2>
   <p id="victory-p"></p>
-  <div style="display:flex;gap:.8rem">
+  <div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center">
     <button id="victory-town">Return to Salem</button>
     <button id="victory-deeper">Descend Beyond</button>
+    <button id="victory-ng">Begin the Second Hanging</button>
   </div>
 </div>
 
@@ -592,7 +601,7 @@ function snapshot(){
     equip:Object.fromEntries(WORN.map(s=>[s,stripItem(p.equip[s])])),
     pet:stripItem(p.equip.pet), quests:p.quests||{}, deepest:G.deepest||G.floor, portal:G.portal||null,
     ash:p.ash||0, bossFirsts:p.bossFirsts||{}, pages:p.pages||{}, bounties:p.bounties||null,
-    ending:p.ending||null, hardcore:!!p.hardcore,
+    ending:p.ending||null, hardcore:!!p.hardcore, unlocks:p.unlocks||{}, ng:p.ng||0,
     bag:p.bag.map(stripItem)};
 }
 function saveGame(){ const s=snapshot(); if(s) Store.set(slotKey(CUR_SLOT),s); }
@@ -863,8 +872,10 @@ const CLASSES={
   },
 };
 
-/* ---------- grimoire: skill trees ---------- */
-/* One skill point per level. Nodes within a branch unlock in order. */
+/* ---------- grimoire: skill trees ----------
+   Four branches sharpen the class arts. Beyond them lie two PATHS — rival
+   schools of the same trade. Sink twelve points into a path and its final
+   seal, the MASTERY, may be inscribed. */
 const TREES={
   witchfinder:[
     {br:"Zealot's Arc",nodes:[
@@ -887,15 +898,21 @@ const TREES={
       {id:'wf_c2',n:'Heavier Shot',d:'+20% pellet damage per rank',max:3,eff:{sd_coachgun:20}},
       {id:'wf_c3',n:'Paper Cartridges',d:'-18% cooldown per rank',max:2,eff:{cdr_coachgun:18}},
     ]},
-    {br:'Doctrines of the Court',nodes:[
-      {id:'wf_p1',n:'Iron Conviction',d:'+12% armor per rank',max:3,eff:{armorP:12}},
-      {id:'wf_p2',n:'Stubborn Flesh',d:'+8% life per rank',max:3,eff:{hpP:8}},
-      {id:'wf_p3',n:'Blood Tithe',d:'+2% life leech per rank',max:2,eff:{leech:2}},
+    {br:'Path of the Pyre',path:'A',pn:'PATH OF THE PYRE — burn it all, and gladly',nodes:[
+      {id:'wf_pa1',n:'Tinder Soul',d:'+6% all damage per rank',max:5,eff:{dmgP:6}},
+      {id:'wf_pa2',n:'Hungry Flames',d:'Your burns tick +20% harder per rank',max:3,eff:{burnP:20}},
+      {id:'wf_pa3',n:'Stoked Zeal',d:'Zealotry burns +5% hotter per rank',max:4,eff:{zealP:5}},
+      {id:'wf_pa4',n:'Spreading Ash',d:'Burning foes that die ignite their fellows nearby (+0.7 reach per rank)',max:2,eff:{burnSpread:1}},
+      {id:'wf_pa5',n:'Twin Loads',d:'Coachgun fires +1 pellet per rank',max:2,eff:{pellets:1}},
+      {id:'wf_paC',n:'GRAND INQUISITOR',d:'Mastery — everything you kill detonates: 60% weapon damage in fire to its neighbors',max:1,cap:1,req:12,eff:{pyreCap:1}},
     ]},
-    {br:'Rites of Iron (mastery)',nodes:[
-      {id:'wf_m1',n:'Lasting Zeal',d:'Zealotry lingers +1.5s per rank',max:2,eff:{zealDur:1.5}},
-      {id:'wf_m2',n:'Executioner',d:'+12% damage to stunned or burning foes per rank',max:3,eff:{execP:12}},
-      {id:'wf_m3',n:'Ash Doctrine',d:'Your burns tick +25% harder per rank',max:2,eff:{burnP:25}},
+    {br:'Path of the Iron Court',path:'B',pn:'PATH OF THE IRON COURT — the law, made flesh',nodes:[
+      {id:'wf_pb1',n:'Iron Conviction',d:'+10% armor per rank',max:5,eff:{armorP:10}},
+      {id:'wf_pb2',n:'Stubborn Flesh',d:'+6% life per rank',max:5,eff:{hpP:6}},
+      {id:'wf_pb3',n:"Bailiff's Answer",d:'Returns +7 damage to attackers per rank',max:4,eff:{thornsF:7}},
+      {id:'wf_pb4',n:'Blood Tithe',d:'+2% of damage drunk as life per rank',max:3,eff:{leech:2}},
+      {id:'wf_pb5',n:'Contempt of Court',d:'+12% damage to stunned or burning foes per rank',max:3,eff:{execP:12}},
+      {id:'wf_pbC',n:'LORD MAGISTRATE',d:'Mastery — after Gallows Judgement, court is in session 5s: you take 25% less harm and those who strike you are stunned',max:1,cap:1,req:12,eff:{courtCap:1}},
     ]},
   ],
   aetherist:[
@@ -909,7 +926,7 @@ const TREES={
       {id:'ae_l2',n:'Further Conduits',d:'Chains to +1 foe per rank',max:2,eff:{chains:1}},
       {id:'ae_l3',n:'Leyden Reserve',d:'-18% cooldown per rank',max:2,eff:{cdr_lattice:18}},
     ]},
-    {br:'S\u00E9ance Nova',nodes:[
+    {br:'Séance Nova',nodes:[
       {id:'ae_s1',n:'Louder Dead',d:'+20% Nova damage per rank',max:3,eff:{sd_seance:20}},
       {id:'ae_s2',n:'Wider Circle',d:'+0.5 circle radius per rank',max:2,eff:{rad_seance:0.5}},
       {id:'ae_s3',n:'Lingering Grip',d:'+1s slow per rank',max:2,eff:{slow_seance:1}},
@@ -919,15 +936,21 @@ const TREES={
       {id:'ae_c2',n:'Thicker Windings',d:'+20% coil damage per rank',max:3,eff:{sd_coil:20}},
       {id:'ae_c3',n:'Slow Discharge',d:'+2s coil lifetime per rank',max:2,eff:{dur_coil:2}},
     ]},
-    {br:'Forbidden Theorems',nodes:[
-      {id:'ae_p1',n:'Aetheric Reservoir',d:'+10% max aether per rank',max:3,eff:{apP:10}},
-      {id:'ae_p2',n:'Galvanic Mind',d:'+0.6 aether regen per rank',max:3,eff:{apReg:0.6}},
-      {id:'ae_p3',n:'Terrible Erudition',d:'+6% all damage per rank',max:2,eff:{dmgP:6}},
+    {br:'Path of the Storm',path:'A',pn:'PATH OF THE STORM — the sky, brought indoors',nodes:[
+      {id:'ae_pa1',n:'Charged Mind',d:'+6% all damage per rank',max:5,eff:{dmgP:6}},
+      {id:'ae_pa2',n:'Forked Lightning',d:'Galvanic Bolt forks to +1 nearby foe per rank',max:2,eff:{forkN:1}},
+      {id:'ae_pa3',n:'Static Residue',d:'Your hits slow foes 0.4s per rank',max:3,eff:{slowHit:0.4}},
+      {id:'ae_pa4',n:'Conduit Web',d:'Arc Lattice chains to +1 foe per rank',max:3,eff:{chains:1}},
+      {id:'ae_pa5',n:'Overflow',d:'+8% damage while aether is full per rank',max:3,eff:{fullApDmg:8}},
+      {id:'ae_paC',n:'TEMPEST ENGINE',d:'Mastery — Galvanic Bolt becomes a storm lance: it pierces everything and forks twice more',max:1,cap:1,req:12,eff:{stormCap:1}},
     ]},
-    {br:'Resonance (mastery)',nodes:[
-      {id:'ae_m1',n:'Static Field',d:'Your hits slow foes 0.4s per rank',max:2,eff:{slowHit:0.4}},
-      {id:'ae_m2',n:'Overflow',d:'+12% damage while aether is full per rank',max:2,eff:{fullApDmg:12}},
-      {id:'ae_m3',n:'Quick Capacitors',d:'Tesla Coil fires +20% faster per rank',max:2,eff:{coilRate:20}},
+    {br:'Path of the Machine',path:'B',pn:'PATH OF THE MACHINE — patience, brass, and voltage',nodes:[
+      {id:'ae_pb1',n:'Aetheric Reservoir',d:'+8% max aether per rank',max:5,eff:{apP:8}},
+      {id:'ae_pb2',n:'Galvanic Mind',d:'+0.5 aether regen per rank',max:4,eff:{apReg:0.5}},
+      {id:'ae_pb3',n:'Twin Windings',d:'Tesla Coil plants +1 coil per cast per rank',max:2,eff:{coilCount:1}},
+      {id:'ae_pb4',n:'Numbing Current',d:'Coil strikes slow their target 0.8s per rank',max:2,eff:{coilSlow:0.8}},
+      {id:'ae_pb5',n:'Long Discharge',d:'+2s coil lifetime per rank',max:3,eff:{dur_coil:2}},
+      {id:'ae_pbC',n:'THE DIFFERENCE ENGINE',d:'Mastery — every coil strike arcs onward to a second foe at 70%',max:1,cap:1,req:12,eff:{coilCap:1}},
     ]},
   ],
   resurrectionist:[
@@ -951,21 +974,27 @@ const TREES={
       {id:'re_x2',n:'Fresher Stock',d:'+20% skeleton damage per rank',max:3,eff:{sd_exhume:20}},
       {id:'re_x3',n:'Sturdy Wires',d:'+4s skeleton lifetime per rank',max:2,eff:{dur_exhume:4}},
     ]},
-    {br:'Trade Secrets',nodes:[
-      {id:'re_p1',n:"Anatomist's Eye",d:'+3% critical chance per rank',max:3,eff:{crit:3}},
-      {id:'re_p2',n:'Quick Exits',d:'+5% movement speed per rank',max:3,eff:{msP:5}},
-      {id:'re_p3',n:'Grave Fortune',d:'+8% finer-loot fortune per rank',max:2,eff:{luck:8}},
+    {br:'Path of the Scalpel',path:'A',pn:'PATH OF THE SCALPEL — anatomy, applied',nodes:[
+      {id:'re_pa1',n:"Anatomist's Eye",d:'+3% critical chance per rank',max:5,eff:{crit:3}},
+      {id:'re_pa2',n:'Opportunist',d:'+20% critical damage per rank',max:4,eff:{critDmgP:20}},
+      {id:'re_pa3',n:'Bleed Them Dry',d:'Critical hits open wounds: +15% of the hit over 2s per rank',max:3,eff:{bleedP:15}},
+      {id:'re_pa4',n:'Ricochet Steel',d:'Thrown knives leap to +1 fresh victim per rank',max:2,eff:{ricochet:1}},
+      {id:'re_pa5',n:'Quick Exits',d:'+4% movement speed per rank',max:4,eff:{msP:4}},
+      {id:'re_paC',n:'THE PERFECT INCISION',d:'Mastery — your critical strikes finish bleeding foes below 20% of their life outright',max:1,cap:1,req:12,eff:{finCap:1}},
     ]},
-    {br:'Anatomy Lessons (mastery)',nodes:[
-      {id:'re_m1',n:'Opportunist',d:'+25% critical damage per rank',max:2,eff:{critDmgP:25}},
-      {id:'re_m2',n:'Bleed Them Dry',d:'Critical hits open wounds: +20% of the hit over 2s per rank',max:2,eff:{bleedP:20}},
-      {id:'re_m3',n:'Exhumer\u2019s Craft',d:'Exhumed skeletons strike +25% harder per rank',max:2,eff:{sd_exhume:25}},
+    {br:'Path of the Charnel Choir',path:'B',pn:'PATH OF THE CHARNEL CHOIR — her clients, returning the favor',nodes:[
+      {id:'re_pb1',n:'Fresher Cadavers',d:'Skeletons strike +20% harder per rank',max:5,eff:{sd_exhume:20}},
+      {id:'re_pb2',n:'Another Client',d:'Exhume raises +1 skeleton per rank',max:2,eff:{exhumeN:1}},
+      {id:'re_pb3',n:'Embalmed Joints',d:'+4s skeleton lifetime per rank',max:3,eff:{dur_exhume:4}},
+      {id:'re_pb4',n:'Loyal Dead',d:'Your skeletons draw the hatred of nearby foes',max:1,eff:{minTaunt:1}},
+      {id:'re_pb5',n:'Grave Fortune',d:'+6% finer-loot fortune per rank',max:4,eff:{luck:6}},
+      {id:'re_pbC',n:'MISTRESS OF THE CHARNEL CHOIR',d:'Mastery — when your skeletons leave, they burst: 120% weapon damage to everything near',max:1,cap:1,req:12,eff:{charnelCap:1}},
     ]},
   ],
   mesmerist:[
     {br:'Mesmeric Lash',nodes:[
       {id:'me_l1',n:'Burning Focus',d:'+20% Lash damage per rank',max:3,eff:{sd_lash:20}},
-      {id:'me_l2',n:'Through the Mind\u2019s Eye',d:'Lash pierces +1 foe per rank',max:2,eff:{pierce_lash:1}},
+      {id:'me_l2',n:'Through the Mind’s Eye',d:'Lash pierces +1 foe per rank',max:2,eff:{pierce_lash:1}},
       {id:'me_l3',n:'Practiced Patter',d:'-15% cooldown per rank',max:2,eff:{cdr_lash:15}},
     ]},
     {br:'Pendulum Arc',nodes:[
@@ -983,15 +1012,21 @@ const TREES={
       {id:'me_c2',n:'Raised Voice',d:'+20% Command damage per rank',max:3,eff:{sd_command:20}},
       {id:'me_c3',n:'Lasting Dread',d:'+1s terror per rank',max:2,eff:{fear_command:1}},
     ]},
-    {br:'Stage Presence',nodes:[
-      {id:'me_s1',n:'Mesmeric Reserves',d:'+10% max aether per rank',max:3,eff:{apP:10}},
-      {id:'me_s2',n:'Commanding Stride',d:'+5% movement speed per rank',max:3,eff:{msP:5}},
-      {id:'me_s3',n:'Deeper Magnetism',d:'Animal Magnetism slows +1s per rank',max:2,eff:{transfix:1}},
+    {br:'Path of the Silver Tongue',path:'A',pn:'PATH OF THE SILVER TONGUE — the audience obeys',nodes:[
+      {id:'me_pa1',n:'Prey on the Helpless',d:'+10% damage to slowed, feared or stunned foes per rank',max:5,eff:{hexP:10}},
+      {id:'me_pa2',n:'Lingering Grip',d:'Your slows, stuns and terrors last +8% per rank',max:4,eff:{ccP:8}},
+      {id:'me_pa3',n:'Contagious Dread',d:'Feared foes that die spread their terror (+0.8 reach per rank)',max:2,eff:{fearSpread:1}},
+      {id:'me_pa4',n:'Deeper Magnetism',d:'Animal Magnetism slows +0.8s per rank',max:3,eff:{transfix:0.8}},
+      {id:'me_pa5',n:'Parlor Tricks',d:'Kills restore +2 aether per rank',max:3,eff:{apKill:2}},
+      {id:'me_paC',n:'THE UNANSWERABLE WORD',d:'Mastery — Voice of Command turns one listener: a foe fights for you for 6 seconds',max:1,cap:1,req:12,eff:{charmCap:1}},
     ]},
-    {br:'The Greater Work (mastery)',nodes:[
-      {id:'me_m1',n:'Prey on the Helpless',d:'+12% damage to slowed, feared or stunned foes per rank',max:3,eff:{hexP:12}},
-      {id:'me_m2',n:'Parlor Tricks',d:'Kills restore +3 aether per rank',max:2,eff:{apKill:3}},
-      {id:'me_m3',n:'Standing Ovation',d:'+25% critical damage per rank',max:2,eff:{critDmgP:25}},
+    {br:'Path of the Twin Self',path:'B',pn:'PATH OF THE TWIN SELF — the act with two leads',nodes:[
+      {id:'me_pb1',n:'A Longer Bow',d:'+2s double lifetime per rank',max:3,eff:{dur_phantasm:2}},
+      {id:'me_pb2',n:'A Violent Streak',d:'The double lashes nearby foes for 40% weapon damage per rank',max:3,eff:{decoyAtk:40}},
+      {id:'me_pb3',n:'Mirrored Bow',d:'Your bow places a second double',max:1,eff:{decoyN:1}},
+      {id:'me_pb4',n:'Louder Curtain-Call',d:'+25% burst damage per rank',max:3,eff:{sd_phantasm:25}},
+      {id:'me_pb5',n:'Commanding Stride',d:'+4% movement speed per rank',max:4,eff:{msP:4}},
+      {id:'me_pbC',n:'THEATRE OF ONE',d:'Mastery — your standing double echoes every Mesmeric Lash you throw, at half strength',max:1,cap:1,req:12,eff:{twinCap:1}},
     ]},
   ],
 };
@@ -1611,7 +1646,7 @@ function newPlayer(classId){
     attackT:0, castT:0, cds:{}, buffs:{},
     equip:{weapon:null,armor:null,hat:null,gloves:null,boots:null,ring:null,ring2:null,amulet:null,pet:null},
     bag:[makeConsumable('scroll')], potH:2, potA:1, potCdQ:0, potCdE:0,
-    quests:{}, pages:{}, bounties:null, slowT:0,
+    quests:{}, pages:{}, bounties:null, slowT:0, unlocks:{}, ng:0,
     anim:0, dead:false, hitFlash:0,
   };
   c.skills.forEach(s=>p.cds[s.id]=0);
@@ -1664,7 +1699,7 @@ function recalc(p){
   p.cdr=Math.min(40,sumAffix(p,'cdr')+gv.cdr);
   p.goldF=sumAffix(p,'goldf')+gv.goldf+(hasPw(p,'midas')?40:0);
   p.apKill=sumAffix(p,'apkill')+tv('apKill');
-  p.thorns=sumAffix(p,'thorns')+gv.thorns;
+  p.thorns=sumAffix(p,'thorns')+gv.thorns+tv('thornsF');
   p.gemBurn=gv.burn;
   // set pieces in concert
   p.setHexP=0; p.costMul=1; p.watchSet=false;
@@ -1685,11 +1720,12 @@ function recalc(p){
   }
   p.hp=Math.min(p.hp,p.maxHp); p.ap=Math.min(p.ap,p.maxAp);
 }
-/* crowd-control duration multiplier — the Showman's Topper lengthens every grip */
-function ccMul(p){ return hasPw(p,'showman')?1.5:1; }
+/* crowd-control duration multiplier — the Showman's Topper and the Silver Tongue lengthen every grip */
+function ccMul(p){ return (hasPw(p,'showman')?1.5:1)*(1+treeVal(p,'ccP')/100); }
 function rollDamage(p,coef,forceCrit){
   let d=rand(p.dmgLo,p.dmgHi)*p.dmgMult*(coef||1);
-  if(p.buffs.zeal>0) d*=hasPw(p,'zeal2')?1.30:1.15;
+  if(p.buffs.zeal>0) d*=1+(hasPw(p,'zeal2')?0.30:0.15)+treeVal(p,'zealP')/100;
+  if(p.buffs.rested>0) d*=1.10;
   if(treeVal(p,'fullApDmg')>0&&p.ap>=p.maxAp*0.95) d*=1+treeVal(p,'fullApDmg')/100;
   let critCh=p.critCh+(p.buffs.vicious>0?50+treeVal(p,'stepCrit'):0);
   const crit=forceCrit||Math.random()*100<critCh;
@@ -1745,32 +1781,42 @@ const BOSSES=[
 ];
 const QUESTS=[
   {giver:'alchemist', n:'The Conservatory Crone', d:'Slay the Crone of Gallows Hill on depth 3.',
-   ask:'Something in the conservatory keeps eating my deliveries \u2014 and the boys who carry them.'},
+   ask:'Something in the conservatory keeps eating my deliveries \u2014 and the boys who carry them.',
+   un:'Prudence\u2019s Gratitude \u2014 every draught and tonic you drink works half again as hard, and she fits your belt for twelve of each.'},
   {giver:'smith', n:'The Unburied Judge', d:'Destroy Magistrate Hathorne on depth 6.',
-   ask:'Hathorne sentenced my great-grandfather. I hear he\u2019s still holding court down there.'},
+   ask:'Hathorne sentenced my great-grandfather. I hear he\u2019s still holding court down there.',
+   un:'Masterwork Drilling \u2014 Ezekiel can bore new hexstone sockets into your weapon, coat and hat.'},
   {giver:'inn', n:'Silence the Choir', d:'Silence the Black Sabbath Choir on depth 9.',
-   ask:'On still nights the singing comes up through the floorboards. My guests don\u2019t sleep. Neither do I.'},
+   ask:'On still nights the singing comes up through the floorboards. My guests don\u2019t sleep. Neither do I.',
+   un:'A Room of Your Own \u2014 resting at the inn is free and leaves you Well-Rested: +10% damage and stride for three minutes.'},
   {giver:'merchant', n:'Unravel the Seamstress', d:'Unmake the Bone Seamstress on depth 12.',
-   ask:'She\u2019s been taking measurements of the townsfolk in their dreams. I\u2019d rather not be fitted.'},
+   ask:'She\u2019s been taking measurements of the townsfolk in their dreams. I\u2019d rather not be fitted.',
+   un:'The Brass Door-Knocker \u2014 your Scrolls of Escape re-fold themselves and are never consumed.'},
   {giver:'sineater', n:'The Mother of the Coven', d:'Face Abigail the Endless on depth 15 and end the coven.',
-   ask:'Abigail and I are old acquaintances. End her, and I will eat the whole town\u2019s share of this sin myself.'},
+   ask:'Abigail and I are old acquaintances. End her, and I will eat the whole town\u2019s share of this sin myself.',
+   un:'Meg\u2019s Communion \u2014 she teaches you two secrets at once (+2 skill points), unlearning is free forever, and Quill may file Indictments.'},
 ];
-function questReward(i){ return 150*(i+1); }
-function scaleHp(base,f){ return Math.round(base*(1+(f-1)*0.58)*(1+f*0.07)); }
-function scaleDmg(d,f){ return d*(1+(f-1)*0.33); }
+function questReward(i){ return Math.round(200*(i+1)*(1+ngLvl()*0.5)); }
+function unlocked(p,q){ return !!((p.unlocks&&p.unlocks[q])||(p.quests&&p.quests[q]==='claimed')); }
+function potCap(p){ return unlocked(p,'q1')?12:9; }
+function ngLvl(){ return (G.player&&G.player.ng)||0; }
+function ngB(){ return ngLvl()*2; } // loot keeps pace with the Second Hanging
+/* past depth 9 the house stops being polite; each Hanging is crueler than the last */
+function scaleHp(base,f){ return Math.round(base*(1+(f-1)*0.58)*(1+f*0.07)*(1+Math.max(0,f-9)*0.05)*(1+ngLvl()*0.55)); }
+function scaleDmg(d,f){ return d*(1+(f-1)*0.33)*(1+Math.max(0,f-9)*0.035)*(1+ngLvl()*0.30); }
 
 function spawnEnemies(rooms, floorNum){
   G.enemies=[]; G.boss=null;
   const pool=ENEMY_TYPES.filter(t=>(t.minF||1)<=floorNum&&!t.flees);
   for(let i=1;i<rooms.length;i++){
     const r=rooms[i];
-    const n=randi(2,3+Math.min(4,Math.floor(floorNum/2)));
+    const n=randi(2,3+Math.min(4,Math.floor(floorNum/2)))+(floorNum>12?1:0)+(ngLvl()>0?1:0);
     for(let j=0;j<n;j++){
       const t=choice(pool);
       const cnt=t.pack||1;
       for(let k=0;k<cnt;k++){
-        const elite=Math.random()<0.08+floorNum*0.012;
-        const special=!elite&&Math.random()<0.004+floorNum*0.0004;
+        const elite=Math.random()<0.08+floorNum*0.012+Math.max(0,floorNum-9)*0.006+ngLvl()*0.05;
+        const special=!elite&&Math.random()<0.004+floorNum*0.0006+ngLvl()*0.004;
         addEnemy(t, r.x+randi(1,r.w-2), r.y+randi(1,r.h-2), floorNum, elite, false, special);
       }
     }
@@ -1821,7 +1867,7 @@ function addEnemy(t,x,y,f,elite,raw,special){
     type:t, x:x+.5*0, y:y+0, name:t.n,
     hp: raw?t.hp:scaleHp(t.hp,f), elite:!!elite, special:!!special,
     dmgLo: raw?t.dmg[0]:scaleDmg(t.dmg[0],f), dmgHi: raw?t.dmg[1]:scaleDmg(t.dmg[1],f),
-    spd:t.spd, xp:Math.round(raw?t.xp:t.xp*(1+(f-1)*0.35)),
+    spd:t.spd, xp:Math.round((raw?t.xp:t.xp*(1+(f-1)*0.35))*(1+ngLvl()*0.25)),
     aggro:false, atkT:rand(0,1), path:null, pathT:0, dead:false, hitFlash:0,
     stun:0, slow:0, burn:0, burnDmg:0, fear:0, lungeT:0, lungeCd:rand(.5,2), anim:rand(0,9),
   };
@@ -1874,6 +1920,9 @@ function hitEnemy(e,dmg,crit,burn){
   if(treeVal(p,'slowHit')>0) e.slow=Math.max(e.slow,treeVal(p,'slowHit')*ccMul(p));
   if(p.leech>0){ p.hp=Math.min(p.maxHp,p.hp+dmg*p.leech/100); }
   sfx('hit');
+  if(e.hp>0&&crit&&treeVal(p,'finCap')>0&&!e.boss&&e.burn>0&&e.hp<e.maxHp*0.2){
+    addText(e.x,e.y,'INCISED','#7ddf8a',true); addFx(e.x,e.y,'#7ddf8a',8,2,2.5); e.hp=0;
+  }
   if(e.hp>0&&hasPw(p,'twentieth')&&e.hp<e.maxHp*(e.boss?0.05:0.15)){
     addText(e.x,e.y,'HANGED','#f0bd4e',true); addFx(e.x,e.y,'#f0bd4e',8,2,2.5); e.hp=0;
   }
@@ -1896,6 +1945,23 @@ function killEnemy(e){
   if(p.classId==='witchfinder'){ p.buffs.zeal=(hasPw(p,'zeal2')?6:3)+treeVal(p,'zealDur'); }
   if(hasPw(p,'ghostStep')&&p.cds.step!=null) p.cds.step=0;
   if(p.apKill>0){ p.ap=Math.min(p.maxAp,p.ap+p.apKill); }
+  // the Pyre and the Silver Tongue make endings contagious
+  if(treeVal(p,'pyreCap')>0&&!e.pyred){
+    e.pyred=true;
+    G.fx.push({ring:[e.x,e.y,1.8],t:.4,color:'#ff9a4d'});
+    for(const o of G.enemies){ if(!o.dead&&o!==e&&dist(e.x,e.y,o.x,o.y)<=1.8){
+      const r=rollDamage(p,0.6); hitEnemy(o,r.d,r.crit,true); } }
+  }
+  if(e.burn>0&&treeVal(p,'burnSpread')>0){
+    const rr=1.5+treeVal(p,'burnSpread')*0.7;
+    for(const o of G.enemies){ if(!o.dead&&o!==e&&dist(e.x,e.y,o.x,o.y)<=rr){
+      o.burn=Math.max(o.burn,3); o.burnDmg=Math.max(o.burnDmg,(e.burnDmg||4)); addFx(o.x,o.y,'#ff9a4d',3,1.2); } }
+  }
+  if(e.fear>0&&treeVal(p,'fearSpread')>0){
+    const rr=2+treeVal(p,'fearSpread')*0.8;
+    for(const o of G.enemies){ if(!o.dead&&o!==e&&!o.boss&&dist(e.x,e.y,o.x,o.y)<=rr){
+      o.fear=Math.max(o.fear,2*ccMul(p)); addFx(o.x,o.y,'#c78bf2',3,1.2); } }
+  }
   bountyKill(e);
   gainXp(Math.round(e.xp));
   const luck=p.luck+(p.buffs.fortune>0?40:0)+indictLuck();
@@ -1903,7 +1969,7 @@ function killEnemy(e){
   if(e.type.id==='imp'){
     // the imp's sack bursts: stolen plate everywhere
     dropGold((40+G.floor*16)*gMul,e.x,e.y);
-    dropItem(makeItem(G.floor+1,Math.random()<.5?'magic':null,luck),e.x+.5,e.y);
+    dropItem(makeItem(G.floor+1+ngB(),Math.random()<.5?'magic':null,luck),e.x+.5,e.y);
     dropAsh(2,e.x-.5,e.y);
     msg('The <b style="color:#7dc26e">Coven Imp</b> bursts like a dropped purse.','#7dc26e');
   }
@@ -1923,8 +1989,8 @@ function killEnemy(e){
   if(e.boss){
     const first=!p.bossFirsts['b'+G.floor];
     p.bossFirsts['b'+G.floor]=true;
-    if(first) dropItem(makeItem(G.floor+1,'unique'),e.x,e.y);
-    else dropItem(makeItem(G.floor+1,Math.random()<.30?'unique':'magic',luck),e.x,e.y);
+    if(first) dropItem(makeItem(G.floor+1+ngB(),'unique'),e.x,e.y);
+    else dropItem(makeItem(G.floor+1+ngB(),Math.random()<.30?'unique':'magic',luck),e.x,e.y);
     dropItem(makePotion('hp'),e.x-.6,e.y);
     if(Math.random()<.45) dropItem(makePet(Math.random()<.3?'unique':'magic'),e.x,e.y+.6);
     if(Math.random()<.35) dropItem(makeGem(G.floor>=12?randi(2,3):G.floor>=6?randi(1,2):1),e.x-.6,e.y+.6);
@@ -1946,13 +2012,13 @@ function killEnemy(e){
     }
     completeBossQuest();
   } else if(e.special){
-    dropItem(makeItem(G.floor+1,Math.random()<.06+luck*0.0015?'unique':'magic',luck),e.x,e.y);
+    dropItem(makeItem(G.floor+1+ngB(),Math.random()<.06+luck*0.0015?'unique':'magic',luck),e.x,e.y);
     if(Math.random()<.20) dropItem(makePet('magic'),e.x+.5,e.y);
     dropGold((12+G.floor*6)*gMul,e.x-.5,e.y);
     dropAsh(randi(1,3),e.x,e.y+.5);
     msg('The <b style="color:#c78bf2">'+e.name+'</b> comes apart at its seams, leaving <b style="color:#c78bf2">witch ash</b>.','#c78bf2');
   } else if(e.elite){
-    if(Math.random()<.75) dropItem(makeItem(G.floor,Math.random()<.04+luck*0.001?'unique':'magic',luck),e.x,e.y);
+    if(Math.random()<.75) dropItem(makeItem(G.floor+ngB(),Math.random()<.04+luck*0.001?'unique':'magic',luck),e.x,e.y);
     if(Math.random()<.05) dropItem(makePet('magic'),e.x+.5,e.y+.5);
     if(Math.random()<.30) dropItem(makePotion(Math.random()<.6?'hp':'ap'),e.x+.5,e.y);
     if(Math.random()<.35) dropAsh(1,e.x,e.y+.4);
@@ -1960,7 +2026,7 @@ function killEnemy(e){
   } else {
     // fewer trinkets, more coin: the satchel breathes
     const r=Math.random();
-    if(r<.13) dropItem(makeItem(G.floor,null,luck),e.x,e.y);
+    if(r<.13) dropItem(makeItem(G.floor+ngB(),null,luck),e.x,e.y);
     else if(r<.23) dropGold((2+G.floor*rand(1,2.4))*gMul,e.x,e.y);
     if(Math.random()<.09) dropItem(makePotion(Math.random()<.65?'hp':'ap'),e.x,e.y);
   }
@@ -2046,7 +2112,7 @@ function resolveFinal(spared){
 }
 function dropGold(amt,x,y){
   if(amt<=0) return;
-  amt*=1+((G.player&&G.player.goldF)||0)/100;
+  amt*=(1+((G.player&&G.player.goldF)||0)/100)*(1+ngLvl()*0.3);
   G.drops.push({gold:Math.round(amt), x:x+rand(-.4,.4), y:y+rand(-.4,.4), bob:rand(0,9)});
 }
 function dropAsh(n,x,y){
@@ -2061,10 +2127,11 @@ function gainXp(n){
   const p=G.player; p.xp+=n;
   while(p.xp>=p.xpNext){
     p.xp-=p.xpNext; p.level++; p.xpNext=Math.round(85*Math.pow(p.level,1.55));
-    p.statPts+=5; p.skillPts=(p.skillPts||0)+1; recalc(p); p.hp=p.maxHp; p.ap=p.maxAp;
+    const bonus=p.level%4===0?1:0;
+    p.statPts+=5; p.skillPts=(p.skillPts||0)+1+bonus; recalc(p); p.hp=p.maxHp; p.ap=p.maxAp;
     addText(p.x,p.y,'LEVEL '+p.level,'#f0bd4e',true);
     addFx(p.x,p.y,'#f0bd4e',24,2.5,3.5);
-    msg('You have reached <b>level '+p.level+'</b>. 5 attribute points (C) and a skill point (T) await.','#f0bd4e');
+    msg('You have reached <b>level '+p.level+'</b>. 5 attribute points (C) and '+(bonus?'<b style="color:#7ddf8a">two skill points</b>':'a skill point')+' (T) await.','#f0bd4e');
     sfx('level'); renderChar(); saveGame();
   }
 }
@@ -2083,8 +2150,10 @@ function hurtPlayer(raw,srcName,attacker){
     if(p.thorns>0){ attacker.hp-=p.thorns; addFx(attacker.x,attacker.y,'#9c2733',2,1);
       if(attacker.hp<=0) killEnemy(attacker); }
   }
+  if(attacker&&!attacker.dead&&p.buffs.court>0) attacker.stun=Math.max(attacker.stun,0.5);
   const red=p.armor/(p.armor+30+G.floor*6);
   let dmg=Math.max(1,raw*(1-red));
+  if(p.buffs.court>0) dmg*=0.75; // court is in session
   if(p.classId==='aetherist'&&p.ap>0){
     const veil=Math.min(dmg*0.25,p.ap*0.5);
     p.ap-=veil*2; dmg-=veil;
@@ -2151,17 +2220,26 @@ function tryCast(idx){
   if(sk.turret){
     let tx=Math.round(m.tx),ty=Math.round(m.ty);
     if(!walkable(tx,ty)||dist(p.x,p.y,tx,ty)>8){ tx=Math.round(p.x); ty=Math.round(p.y); }
-    G.turrets.push({x:tx,y:ty,t:sk.dur+tv('dur_'+sk.id),cd:0,coef,anim:0});
+    const nCoil=1+tv('coilCount');
+    for(let k=0;k<nCoil;k++){
+      const ox=k===0?0:(k===1?0.9:-0.9);
+      G.turrets.push({x:tx+ox,y:ty+(k===2?0.6:0),t:sk.dur+tv('dur_'+sk.id),cd:k*0.2,coef,anim:rand(0,9)});
+    }
     addFx(tx,ty,'#9fe8ff',10,1.5,2.5);
     return;
   }
   if(sk.summon){
     let tx=m.tx,ty=m.ty;
     if(!walkable(Math.round(tx),Math.round(ty))||dist(p.x,p.y,tx,ty)>8){ tx=p.x+p.dir; ty=p.y; }
-    G.minions.push({x:tx,y:ty,t:sk.dur+tv('dur_'+sk.id),atkT:0,coef,anim:rand(0,9)});
-    if(hasPw(p,'summoner')) G.minions.push({x:tx+0.6,y:ty+0.4,t:sk.dur+tv('dur_'+sk.id),atkT:0.4,coef,anim:rand(0,9)});
+    const nSk=1+tv('exhumeN')+(hasPw(p,'summoner')?1:0);
+    const taunt=tv('minTaunt')>0;
+    for(let k=0;k<nSk;k++){
+      const mn={x:tx+(k%2?0.7:0)-(k===2?0.7:0),y:ty+(k>0?0.4:0),t:sk.dur+tv('dur_'+sk.id),atkT:k*0.3,coef,anim:rand(0,9)};
+      if(taunt){ mn.taunt=true; mn.hp=mn.maxHp=40+p.level*7; }
+      G.minions.push(mn);
+    }
     addFx(tx,ty,'#cfd6dd',12,1.8,2.5);
-    msg('Something old answers the whistle.','#cfd6dd');
+    msg(nSk>1?'The old clients answer together.':'Something old answers the whistle.','#cfd6dd');
     return;
   }
   if(sk.blink){
@@ -2192,10 +2270,13 @@ function tryCast(idx){
   if(sk.decoy){
     let tx=m.tx,ty=m.ty;
     if(!walkable(Math.round(tx),Math.round(ty))||dist(p.x,p.y,tx,ty)>7){ tx=p.x+p.dir; ty=p.y; }
-    G.decoys.push({x:tx,y:ty,t:sk.dur+tv('dur_phantasm'),hp:p.maxHp*0.35,maxHp:p.maxHp*0.35,
-      coef, anim:rand(0,9), decoy:true, classId:p.classId, dir:p.dir});
+    const nDc=1+tv('decoyN');
+    for(let k=0;k<nDc;k++){
+      G.decoys.push({x:tx+(k?1:0),y:ty+(k?0.4:0),t:sk.dur+tv('dur_phantasm'),hp:p.maxHp*0.35,maxHp:p.maxHp*0.35,
+        coef, anim:rand(0,9), atkT:k*0.5, decoy:true, classId:p.classId, dir:p.dir});
+    }
     addFx(tx,ty,'#c78bf2',14,1.8,2.6);
-    msg('Your double doffs its hat and waits. The dark takes the bait.','#c78bf2');
+    msg(nDc>1?'Two of you bow. The dark cannot decide which to hate.':'Your double doffs its hat and waits. The dark takes the bait.','#c78bf2');
     return;
   }
   if(sk.chain){
@@ -2232,26 +2313,59 @@ function tryCast(idx){
         if(sk.slow) e.slow=Math.max(e.slow,slowDur);
         if(sk.fear&&!e.boss) e.fear=Math.max(e.fear,fearDur);
       }}
+    if(sk.id==='judgement'&&tv('courtCap')>0){
+      p.buffs.court=5;
+      msg('<b style="color:#7ddf8a">Court is in session.</b> Harm against you is reduced, and those who strike you are held in contempt.','#7ddf8a');
+    }
+    if(sk.fear&&tv('charmCap')>0){
+      let best=null,bd=radius+1;
+      for(const e of G.enemies){ if(e.dead||e.boss||e.type.still||e.type.flees) continue;
+        const d=dist(cx,cy,e.x,e.y); if(d<bd){bd=d;best=e;} }
+      if(best){ best.charmT=6; best.fear=0; best.aggro=true;
+        addFx(best.x,best.y,'#c78bf2',12,2,2.5);
+        msg('The <b style="color:#c78bf2">'+best.name+'</b> turns on its fellows, eyes glazed.','#c78bf2'); }
+    }
     return;
   }
   if(sk.proj){
-    const shots=sk.fan?sk.fan+tv('blades'):1;
+    const shots=sk.fan?sk.fan+tv('blades')+tv('pellets'):1;
     const baseAng=Math.atan2(m.ty-p.y,m.tx-p.x);
+    const storm=sk.id==='bolt'&&tv('stormCap')>0;
+    const pierce=(sk.proj.pierce||0)+tv('pierce_'+sk.id)+(hasPw(p,'pierce2')?2:0)+(storm?99:0);
+    const ric=sk.id==='knife'?tv('ricochet'):0;
     for(let i=0;i<shots;i++){
       const ang=baseAng+(shots>1?(i-(shots-1)/2)*0.22:0);
       G.projs.push({x:p.x,y:p.y,vx:Math.cos(ang)*sk.proj.speed,vy:Math.sin(ang)*sk.proj.speed,
-        t:sk.shortT||1.4,color:sk.proj.color,coef:coef,pierce:(sk.proj.pierce||0)+tv('pierce_'+sk.id)+(hasPw(p,'pierce2')?2:0),friendly:true,hitSet:new Set()});
+        t:sk.shortT||1.4,color:sk.proj.color,coef:coef,pierce,ric,friendly:true,hitSet:new Set()});
     }
-    // Franklin's Folly: a second bolt seeks another sinner
-    if(hasPw(p,'fork')&&!sk.fan){
-      let alt=null,bd=7;
-      for(const e of G.enemies){ if(e.dead) continue;
-        const d0=dist(p.x,p.y,e.x,e.y);
-        const da=Math.abs(Math.atan2(e.y-p.y,e.x-p.x)-Math.atan2(m.ty-p.y,m.tx-p.x));
-        if(d0<bd&&da>0.35){ bd=d0; alt=e; } }
-      if(alt){ const a2=Math.atan2(alt.y-p.y,alt.x-p.x);
+    // forks: Franklin's Folly, the Forked Lightning seals, and the Tempest Engine
+    let forks=0;
+    if(!sk.fan){
+      if(hasPw(p,'fork')) forks+=1;
+      if(sk.id==='bolt') forks+=tv('forkN')+(storm?2:0);
+    }
+    if(forks>0){
+      const taken=new Set();
+      for(let f2=0;f2<forks;f2++){
+        let alt=null,bd=7;
+        for(const e of G.enemies){ if(e.dead||taken.has(e)) continue;
+          const d0=dist(p.x,p.y,e.x,e.y);
+          const da=Math.abs(Math.atan2(e.y-p.y,e.x-p.x)-Math.atan2(m.ty-p.y,m.tx-p.x));
+          if(d0<bd&&da>0.3){ bd=d0; alt=e; } }
+        if(!alt) break;
+        taken.add(alt);
+        const a2=Math.atan2(alt.y-p.y,alt.x-p.x);
         G.projs.push({x:p.x,y:p.y,vx:Math.cos(a2)*sk.proj.speed,vy:Math.sin(a2)*sk.proj.speed,
-          t:sk.shortT||1.4,color:sk.proj.color,coef:coef*0.7,pierce:hasPw(p,'pierce2')?2:0,friendly:true,hitSet:new Set()}); }
+          t:sk.shortT||1.4,color:sk.proj.color,coef:coef*0.7,pierce:storm?99:(hasPw(p,'pierce2')?2:0),friendly:true,hitSet:new Set()});
+      }
+    }
+    // Theatre of One: the double echoes the lash
+    if(sk.id==='lash'&&tv('twinCap')>0){
+      for(const dc of G.decoys){ if(dc.popped) continue;
+        const a3=Math.atan2(m.ty-dc.y,m.tx-dc.x);
+        G.projs.push({x:dc.x,y:dc.y,vx:Math.cos(a3)*sk.proj.speed,vy:Math.sin(a3)*sk.proj.speed,
+          t:1.4,color:sk.proj.color,coef:coef*0.5,pierce:tv('pierce_lash'),friendly:true,hitSet:new Set()});
+      }
     }
   }
 }
@@ -2265,9 +2379,10 @@ function basicAttack(target){
 }
 function usePotion(kind){
   const p=G.player; if(p.dead) return;
+  const pot=unlocked(p,'q1')?1.5:1; // Prudence's Gratitude
   if(kind==='hp'){
     if(p.potCdQ>0||p.potH<=0) return;
-    p.potH--; p.potCdQ=1.2; p.hp=Math.min(p.maxHp,p.hp+p.maxHp*0.45);
+    p.potH--; p.potCdQ=1.2; p.hp=Math.min(p.maxHp,p.hp+p.maxHp*0.45*pot);
     addText(p.x,p.y,'Laudanum','#ff9aa5'); sfx('potion');
     if(hasPw(p,'doubt')){
       G.fx.push({ring:[p.x,p.y,2.4],t:.5,color:'#ffe9b0'}); sfx('magic');
@@ -2276,7 +2391,7 @@ function usePotion(kind){
     }
   } else {
     if(p.potCdE>0||p.potA<=0) return;
-    p.potA--; p.potCdE=1.2; p.ap=Math.min(p.maxAp,p.ap+p.maxAp*0.6);
+    p.potA--; p.potCdE=1.2; p.ap=Math.min(p.maxAp,p.ap+p.maxAp*0.6*pot);
     addText(p.x,p.y,'Tonic','#7be3c4'); sfx('potion');
   }
   updateHud();
@@ -2351,7 +2466,7 @@ function startFloor(n,from){
     t='An Indicted Floor — Tier '+G.indict.tier;
     sub=G.indict.mods.map(k=>INDICT_MODS.find(m=>m.k===k).n).join(' · ');
   }
-  document.getElementById('floor-name').innerHTML=(G.indict?'⚖️ ':(n===0?'':'Depth '+n+' — '))+'<b>'+t+'</b>';
+  document.getElementById('floor-name').innerHTML=((p.ng||0)>0?'<span style="color:#c78bf2">NG+'+p.ng+'</span> · ':'')+(G.indict?'⚖️ ':(n===0?'':'Depth '+n+' — '))+'<b>'+t+'</b>';
   const b=document.getElementById('banner');
   document.getElementById('banner-h').textContent=t;
   document.getElementById('banner-p').textContent=sub;
@@ -2394,7 +2509,7 @@ function update(dt){
     const [nx,ny]=p.path[0];
     const tx=nx, ty=ny;
     const d=dist(p.x,p.y,tx,ty);
-    const step=p.speed*(p.buffs.frenzy>0?1.18:1)*(p.slowT>0?0.6:1)*(p.buffs.spring>0?1.22:1)*dt;
+    const step=p.speed*(p.buffs.frenzy>0?1.18:1)*(p.slowT>0?0.6:1)*(p.buffs.spring>0?1.22:1)*(p.buffs.rested>0?1.10:1)*dt;
     if(d<=step){ p.x=tx;p.y=ty;p.path.shift(); }
     else { p.x+=(tx-p.x)/d*step; p.y+=(ty-p.y)/d*step; p.dir=(tx>p.x-0.001)?(tx>p.x?1:p.dir):-1; if(Math.abs(tx-p.x)>.02) p.dir=tx>p.x?1:-1; }
     p.anim+=dt*9;
@@ -2467,7 +2582,7 @@ function update(dt){
   if(map[pty]&&map[pty][ptx]===T_SHRINE&&!G.shrineUsed){
     G.shrineUsed=true;
     const st=G.shrineType||'mending';
-    if(st==='mending'){ p.hp=p.maxHp; p.ap=p.maxAp; p.potH=Math.min(9,p.potH+1); p.potA=Math.min(9,p.potA+1);
+    if(st==='mending'){ p.hp=p.maxHp; p.ap=p.maxAp; p.potH=Math.min(potCap(p),p.potH+1); p.potA=Math.min(potCap(p),p.potA+1);
       addFx(p.x,p.y,'#7be3c4',20,2,3); msg('You drink from a <b style="color:var(--verdigris)">consecrated well</b>. Humours and aether restored.'); }
     else if(st==='frenzy'){ p.buffs.frenzy=30;
       addFx(p.x,p.y,'#e08a8a',20,2,3); msg('A <b style="color:#e08a8a">frenzied spring</b> \u2014 your hands and feet move quicker for 30s.'); }
@@ -2534,9 +2649,31 @@ function update(dt){
       if(Math.random()<dt*14) addFx(e.x,e.y,e.type.color,1,1.2);
       continue;
     }
-    // a hay effigy or a phantasmal double draws their hatred
+    // a turned listener fights for the mesmerist
+    if(e.charmT>0){
+      e.charmT-=dt; e.anim+=dt*3;
+      let foe=null,bd3=7;
+      for(const o of G.enemies){ if(o===e||o.dead||o.charmT>0||o.type.still) continue;
+        const d3=dist(e.x,e.y,o.x,o.y); if(d3<bd3){bd3=d3;foe=o;} }
+      if(foe){
+        if(bd3<1.3){ e.atkT-=dt;
+          if(e.atkT<=0){ e.atkT=1;
+            foe.hp-=rand(e.dmgLo,e.dmgHi); foe.hitFlash=.12; foe.aggro=true;
+            addFx(foe.x,foe.y,'#c78bf2',4,1.4);
+            if(foe.hp<=0) killEnemy(foe);
+          }
+        } else {
+          const a4=Math.atan2(foe.y-e.y,foe.x-e.x);
+          const nx=e.x+Math.cos(a4)*e.spd*dt, ny=e.y+Math.sin(a4)*e.spd*dt;
+          if(walkable(Math.round(nx),Math.round(ny))){ e.x=nx; e.y=ny; }
+        }
+      }
+      continue;
+    }
+    // a hay effigy, a phantasmal double, or a loyal skeleton draws their hatred
     let tgt=(tank&&dist(e.x,e.y,tank.x,tank.y)<5.5)?tank:p;
     for(const dc of G.decoys){ if(!dc.popped&&dist(e.x,e.y,dc.x,dc.y)<6){ tgt=dc; break; } }
+    if(tgt===p) for(const mn of G.minions){ if(mn.taunt&&!mn.dead&&dist(e.x,e.y,mn.x,mn.y)<5){ tgt=mn; break; } }
     const dP=dist(e.x,e.y,tgt.x,tgt.y);
     const spd=e.spd*(e.slow>0?0.45:1);
     e.atkT-=dt;
@@ -2610,6 +2747,7 @@ function update(dt){
         const raw=rand(e.dmgLo,e.dmgHi);
         if(tgt===p){ hurtPlayer(raw,e.name,e); addFx(p.x,p.y,'#9c2733',4,1.5); }
         else if(tgt.decoy) hurtDecoy(tgt,raw);
+        else if(tgt.taunt) hurtMinion(tgt,raw);
         else hurtPet(raw);
         if(e.vamp){ e.hp=Math.min(e.maxHp,e.hp+raw*1.2); addFx(e.x,e.y,'#9c2733',3,1.2); } }
       continue;
@@ -2674,7 +2812,22 @@ function update(dt){
           const r=rollDamage(p,pr.coef); hitEnemy(e,r.d,r.crit);
           if(hasPw(p,'bellshot')&&Math.random()<0.2&&!e.dead){ e.stun=Math.max(e.stun,1*ccMul(p)); addFx(e.x,e.y,'#ffe9b0',4,1.4); }
           pr.hitSet.add(e);
-          if(pr.pierce>0) pr.pierce--; else {pr.dead=true;break;}
+          if(pr.pierce>0) pr.pierce--;
+          else if(pr.ric>0){
+            // ricochet steel: the knife leaps to a fresh victim
+            pr.ric--;
+            let alt=null,bd=6;
+            for(const o of G.enemies){ if(o.dead||pr.hitSet.has(o)) continue;
+              const d2=dist(pr.x,pr.y,o.x,o.y);
+              if(d2<bd&&hasLOS(pr.x,pr.y,o.x,o.y)){ bd=d2; alt=o; } }
+            if(!alt){ pr.dead=true; break; }
+            const sp2=Math.hypot(pr.vx,pr.vy)||10;
+            const a2=Math.atan2(alt.y-pr.y,alt.x-pr.x);
+            pr.vx=Math.cos(a2)*sp2; pr.vy=Math.sin(a2)*sp2; pr.t=Math.max(pr.t,0.8);
+            addFx(pr.x,pr.y,pr.color,4,1.2);
+            break;
+          }
+          else {pr.dead=true;break;}
         }}
     } else if(!pr.friendly){
       let caught=false;
@@ -2796,13 +2949,30 @@ function updateCompanions(dt){
       if(best){ tu.cd=0.5*Math.max(.4,1-treeVal(p,'coilRate')/100);
         G.fx.push({beam:[tu.x,tu.y,best.x,best.y],t:.22,color:'#9fe8ff'});
         const r=rollDamage(p,tu.coef*(hasPw(p,'summoner')?1.6:1)); hitEnemy(best,r.d,r.crit);
+        if(treeVal(p,'coilSlow')>0&&!best.dead) best.slow=Math.max(best.slow,treeVal(p,'coilSlow')*ccMul(p));
+        if(treeVal(p,'coilCap')>0){
+          let second=null,bd2=5;
+          for(const e of G.enemies){ if(e.dead||e===best) continue;
+            const d2=dist(best.x,best.y,e.x,e.y); if(d2<bd2){bd2=d2;second=e;} }
+          if(second){ G.fx.push({beam:[best.x,best.y,second.x,second.y],t:.2,color:'#9fe8ff'});
+            const r2=rollDamage(p,tu.coef*0.7); hitEnemy(second,r2.d,r2.crit); }
+        }
       } else tu.cd=0.2;
     }
   }
   G.turrets=G.turrets.filter(t=>!t.dead);
-  // --- exhumed skeletons ---
+  // --- exhumed skeletons (and freed townsfolk) ---
   for(const mn of G.minions){
-    mn.t-=dt; mn.anim+=dt*7; if(mn.t<=0){ mn.dead=true; addFx(mn.x,mn.y,'#cfd6dd',8,1.5,2); continue; }
+    mn.t-=dt; mn.anim+=dt*7;
+    if(mn.t<=0){
+      mn.dead=true; addFx(mn.x,mn.y,'#cfd6dd',8,1.5,2);
+      if(!mn.townsman&&treeVal(p,'charnelCap')>0){ // the choir takes its bow
+        G.fx.push({ring:[mn.x,mn.y,2],t:.5,color:'#cfd6dd'}); sfx('magic');
+        for(const e of G.enemies){ if(!e.dead&&dist(mn.x,mn.y,e.x,e.y)<=2){
+          const r=rollDamage(p,1.2); hitEnemy(e,r.d,r.crit); } }
+      }
+      continue;
+    }
     let goal=null,bd=6.5;
     for(const e of G.enemies){ if(e.dead)continue;
       const d=dist(mn.x,mn.y,e.x,e.y); if(d<bd){bd=d;goal=e;} }
@@ -2824,9 +2994,27 @@ function updateCompanions(dt){
   // --- phantasmal doubles ---
   for(const dc of G.decoys){
     dc.anim+=dt*3; dc.t-=dt;
-    if(dc.t<=0&&!dc.popped) popDecoy(dc);
+    if(dc.t<=0&&!dc.popped){ popDecoy(dc); continue; }
+    if(treeVal(p,'decoyAtk')>0&&!dc.popped){
+      dc.atkT=(dc.atkT||0)-dt;
+      if(dc.atkT<=0){
+        let best=null,bd=2.4;
+        for(const e of G.enemies){ if(e.dead) continue;
+          const d=dist(dc.x,dc.y,e.x,e.y); if(d<bd){bd=d;best=e;} }
+        if(best){ dc.atkT=1;
+          G.fx.push({beam:[dc.x,dc.y,best.x,best.y],t:.18,color:'#c78bf2'});
+          const r=rollDamage(p,treeVal(p,'decoyAtk')/100); hitEnemy(best,r.d,r.crit);
+        } else dc.atkT=0.3;
+      }
+    }
   }
   G.decoys=G.decoys.filter(d=>!d.popped);
+}
+function hurtMinion(mn,raw){
+  if(mn.hp==null) return;
+  mn.hp-=Math.max(1,raw);
+  addFx(mn.x,mn.y,'#cfd6dd',3,1.2);
+  if(mn.hp<=0) mn.t=0; // it falls, and the choir may take its bow
 }
 /* ---------- phantasms, miasma, coffers, crates ---------- */
 function hurtDecoy(dc,raw){
@@ -3156,8 +3344,8 @@ function openChest(c){
     }
   }
   dropGold((15+G.floor*7)*(c.gilded?2.2:1),c.x,c.y);
-  dropItem(makeItem(G.floor+(c.gilded?1:0), c.gilded?(Math.random()<.12?'unique':'magic'):(Math.random()<.5?'magic':null), luck), c.x+.4,c.y);
-  if(c.gilded&&Math.random()<.5) dropItem(makeItem(G.floor+1,'magic',luck),c.x-.4,c.y+.3);
+  dropItem(makeItem(G.floor+(c.gilded?1:0)+ngB(), c.gilded?(Math.random()<.12?'unique':'magic'):(Math.random()<.5?'magic':null), luck), c.x+.4,c.y);
+  if(c.gilded&&Math.random()<.5) dropItem(makeItem(G.floor+1+ngB(),'magic',luck),c.x-.4,c.y+.3);
   if(c.gilded&&Math.random()<.5) dropItem(makeGem(G.floor>=12?randi(2,3):G.floor>=6?randi(1,2):1),c.x+.2,c.y-.5);
   if(Math.random()<.4) dropItem(makePotion(Math.random()<.6?'hp':'ap'),c.x,c.y+.5);
   if(c.gilded) dropAsh(randi(2,4),c.x,c.y-.4);
@@ -3269,7 +3457,9 @@ function openBoard(){
 function closeStash(){ document.getElementById('stash-panel').style.display='none'; }
 function openStash(){
   const p=G.player;
-  for(const pid of ['inv-panel','char-panel','tree-panel','shop-panel','journal-panel']) document.getElementById(pid).style.display='none';
+  for(const pid of ['char-panel','tree-panel','shop-panel','journal-panel']) document.getElementById(pid).style.display='none';
+  // the satchel opens alongside, so wares can pass both ways
+  document.getElementById('inv-panel').style.display='flex'; renderInv();
   const body=document.getElementById('stash-body');
   let h='<div class="shop-note">An iron-banded chest kept by the parish. What one investigator leaves, another may take up.</div>';
   h+='<div class="tree-head">In the chest ('+STASH.length+' / '+STASH_CAP+') \u2014 click to take</div><div class="grid">';
@@ -3278,25 +3468,18 @@ function openStash(){
     if(it) h+='<div class="cell r-'+it.rarity+'" data-take="'+i+'" title="'+it.name.replace(/"/g,'')+'">'+itemIcon(it)+((it.qty||1)>1?'<span class="qty">'+it.qty+'</span>':'')+'</div>';
     else h+='<div class="cell empty"></div>';
   }
-  h+='</div><div class="tree-head">Your satchel \u2014 click to store</div><div class="grid">';
-  p.bag.forEach((it,i)=>{
-    h+='<div class="cell r-'+it.rarity+'" data-store="'+i+'" title="'+it.name.replace(/"/g,'')+'">'+itemIcon(it)+((it.qty||1)>1?'<span class="qty">'+it.qty+'</span>':'')+'</div>';
-  });
-  if(!p.bag.length) h+='<div class="cell empty"></div>';
-  h+='</div>';
+  h+='</div><div class="shop-note" style="font-size:.7rem">While the chest stands open, clicking a ware in your <b>satchel</b> (right) stores it here instead of equipping it.</div>';
   body.innerHTML=h;
   body.querySelectorAll('[data-take]').forEach(el=>{
-    el.onclick=()=>{ const i=+el.dataset.take, it=STASH[i]; if(!it) return;
-      if(!addToBag(p,it)){ msg('Your satchel is full.','#9aa39b'); return; }
-      STASH.splice(i,1); saveStash(); sfx('pickup'); renderInv(); openStash(); };
-  });
-  body.querySelectorAll('[data-store]').forEach(el=>{
-    el.onclick=()=>{ const i=+el.dataset.store, it=p.bag[i]; if(!it) return;
-      if(!stashAdd(it)){ msg('The chest is full.','#9aa39b'); return; }
-      p.bag.splice(i,1); saveStash(); saveGame(); sfx('pickup'); renderInv(); openStash(); };
+    const i=+el.dataset.take, it=STASH[i];
+    if(it){ el.onmouseenter=ev=>showTextTooltip(itemTooltipHTML(it),ev); el.onmouseleave=hideTooltip; }
+    el.onclick=()=>{ const it2=STASH[i]; if(!it2) return;
+      if(!addToBag(p,it2)){ msg('Your satchel is full.','#9aa39b'); return; }
+      STASH.splice(i,1); saveStash(); sfx('pickup'); hideTooltip(); renderInv(); openStash(); };
   });
   document.getElementById('stash-panel').style.display='flex';
 }
+function stashOpen(){ return document.getElementById('stash-panel').style.display==='flex'; }
 
 /* ---------- the keepers of Salem Village ---------- */
 function closeShop(){ document.getElementById('shop-panel').style.display='none'; }
@@ -3470,7 +3653,7 @@ function questSection(id){
       h+='<div class="shop-row"><span class="nm"><b style="color:var(--uniq-gold)">'+q.n+'</b><small>It is done. Take what you\u2019re owed.</small></span>'
         +'<button data-claim="'+key+'" data-qi="'+i+'">Collect \uD83E\uDE99'+questReward(i)+'</button></div>';
     } else {
-      h+='<div class="quest-row"><b>'+q.n+'</b> — \u201C'+q.ask+'\u201D<br><span style="color:var(--parchment-dim)">'+q.d+' Reward: '+questReward(i)+' shillings and a finer piece.</span></div>';
+      h+='<div class="quest-row"><b>'+q.n+'</b> — \u201C'+q.ask+'\u201D<br><span style="color:var(--parchment-dim)">'+q.d+' Reward: '+questReward(i)+' shillings, a finer piece, and:</span><br><span style="color:#7ddf8a;font-size:.74rem">'+q.un+'</span></div>';
     }
   });
   return h;
@@ -3486,9 +3669,10 @@ function openShop(id){
     h+='<div class="shop-row"><span class="nm">\uD83E\uDED9 Laudanum Draught<small>Restores 45% of your life. Carried on the belt (Q).</small></span><button data-buy="hp" '+(p.gold<ph?'disabled':'')+'>Buy \uD83E\uDE99'+ph+'</button></div>';
     h+='<div class="shop-row"><span class="nm">\uD83E\uDDEA Aether Tonic<small>Restores 60% of your aether. Carried on the belt (E).</small></span><button data-buy="ap" '+(p.gold<pa?'disabled':'')+'>Buy \uD83E\uDE99'+pa+'</button></div>';
   } else if(id==='inn'){
-    const cost=10+G.deepest*4;
-    const full=p.hp>=p.maxHp&&p.ap>=p.maxAp;
-    h+='<div class="shop-row"><span class="nm">\uD83D\uDECF\uFE0F A bed and a broth<small>Fully restores life and aether.</small></span><button data-rest="1" '+((p.gold<cost||full)?'disabled':'')+'>'+(full?'Hale already':'Rest \uD83E\uDE99'+cost)+'</button></div>';
+    const roomed=unlocked(p,'q3');
+    const cost=roomed?0:10+G.deepest*4;
+    const full=p.hp>=p.maxHp&&p.ap>=p.maxAp&&!roomed;
+    h+='<div class="shop-row"><span class="nm">\uD83D\uDECF\uFE0F '+(roomed?'Your own room':'A bed and a broth')+'<small>Fully restores life and aether.'+(roomed?' Leaves you Well-Rested: +10% damage and stride for 3 minutes.':'')+'</small></span><button data-rest="1" '+((p.gold<cost||full)?'disabled':'')+'>'+(full?'Hale already':roomed?'Rest (free)':'Rest \uD83E\uDE99'+cost)+'</button></div>';
     h+='<div class="shop-note">The Widow keeps a candle in every window. \u201CSo they know the town still watches back,\u201D she says.</div>';
   } else if(id==='smith'){
     const tab=(G.shopTab&&G.shopTab[id])||'forge';
@@ -3524,6 +3708,18 @@ function openShop(id){
     h+='<div class="shop-note" style="font-size:.68rem">T \u2014 Transmute common \u2192 enchanted (2 ash, 30g) \u00B7 R \u2014 Reroll values (3 ash, 40g) \u00B7 A \u2014 Augment +1 enchantment (5 ash, 80g)</div>';
     }
     if(tab==='socket'){
+    if(unlocked(p,'q2')){
+      h+='<div class="tree-head">Masterwork drilling</div>';
+      const drillables=[];
+      for(const s of ['weapon','armor','hat']){ const it=p.equip[s]; if(it&&(it.sk||0)<2) drillables.push({it,where:'worn'}); }
+      p.bag.forEach(it=>{ if(['weapon','armor','hat'].includes(it.slot)&&(it.sk||0)<2) drillables.push({it,where:'satchel'}); });
+      if(!drillables.length) h+='<div class="shop-note">Everything you carry is bored to capacity (two sockets).</div>';
+      else drillables.forEach((d2,i2)=>{
+        const cost=80*((d2.it.sk||0)+1);
+        h+='<div class="shop-row"><span class="nm">'+itemIcon(d2.it)+' <span class="nm-'+d2.it.rarity+'">'+d2.it.name+'</span><small>'+(d2.it.sk||0)+' of 2 sockets \u00b7 '+d2.where+'</small></span>'
+          +'<button data-drill="'+i2+'" '+((p.gold<cost||p.ash<3)?'disabled':'')+'>Drill \ud83e\ude99'+cost+' + 3 ash</button></div>';
+      });
+    } else h+='<div class="shop-note" style="color:#5d655e">Settle <b>The Unburied Judge</b> and Ezekiel will learn masterwork drilling \u2014 new sockets for old steel.</div>';
     h+='<div class="tree-head">Socketry \u2014 hexstones</div>';
     {
       const gems=p.bag.map((it2,i2)=>({it:it2,i:i2})).filter(x=>x.it.gem);
@@ -3582,14 +3778,20 @@ function openShop(id){
     h+='<div class="shop-note">“Go on, little lamp. The house is only a house. The town is only a town. That was the whole trick of it, in the end — they always were.”</div>';
   } else if(id==='sineater'){
     const ranks=Object.values(p.tree||{}).reduce((a,b)=>a+b,0);
-    const skillCost=40*p.level;
+    const free=unlocked(p,'q5');
+    const skillCost=free?0:40*p.level;
     const granted=(p.level-1)*5;
     const spentStats=granted-(p.statPts||0);
-    const statCost=60*p.level;
+    const statCost=free?0:60*p.level;
     h+='<div class="shop-row"><span class="nm">\uD83D\uDD6F\uFE0F Unlearn all arts<small>Old Meg eats your Grimoire choices. All '+ranks+' spent skill points return to you.</small></span>'
-      +'<button data-respec="skills" '+((ranks<=0||p.gold<skillCost)?'disabled':'')+'>'+(ranks<=0?'Nothing to eat':'Unlearn \uD83E\uDE99'+skillCost)+'</button></div>';
+      +'<button data-respec="skills" '+((ranks<=0||p.gold<skillCost)?'disabled':'')+'>'+(ranks<=0?'Nothing to eat':free?'Unlearn (free)':'Unlearn \uD83E\uDE99'+skillCost)+'</button></div>';
     h+='<div class="shop-row"><span class="nm">\uD83E\uDDB4 Redistribute the flesh<small>Your attributes return to how you were born; all '+spentStats+' spent points come back.</small></span>'
-      +'<button data-respec="stats" '+((spentStats<=0||p.gold<statCost)?'disabled':'')+'>'+(spentStats<=0?'Untouched':'Reshape \uD83E\uDE99'+statCost)+'</button></div>';
+      +'<button data-respec="stats" '+((spentStats<=0||p.gold<statCost)?'disabled':'')+'>'+(spentStats<=0?'Untouched':free?'Reshape (free)':'Reshape \uD83E\uDE99'+statCost)+'</button></div>';
+    if(unlocked(p,'q5')){
+      h+='<div class="tree-head">The Second Hanging</div>';
+      h+='<div class="shop-row"><span class="nm">\u26B0\uFE0F Begin the Second Hanging (NG+'+((p.ng||0)+1)+')<small>The mansion re-arms, crueler and richer. You keep your level, gear, arts and unlocks; the investigations and bosses return.</small></span>'
+        +'<button data-ng="1">Begin</button></div>';
+    }
     h+='<div class="shop-note">She chews slowly, looking at nothing. \u201CIt all tastes like 1692,\u201D she says.</div>';
   }
   h+=questSection(id);
@@ -3600,7 +3802,7 @@ function openShop(id){
   });
   body.querySelectorAll('[data-tipstock]').forEach(el=>{
     const it=G.shopStock&&G.shopStock[+el.dataset.tipstock]; if(!it) return;
-    el.onmouseenter=ev=>showTextTooltip(itemTooltipHTML(it,it.slot?'shop':null),ev);
+    el.onmouseenter=ev=>showGenTooltip(()=>itemTooltipHTML(it,it.slot?'shop':null),ev);
     el.onmouseleave=hideTooltip;
   });
   body.querySelectorAll('[data-tipbag]').forEach(el=>{
@@ -3620,10 +3822,13 @@ function openShop(id){
       sfx('gold-drop'); updateHud(); saveGame(); openShop(id); };
   });
   body.querySelectorAll('button[data-rest]').forEach(btn=>{
-    btn.onclick=()=>{ const cost=10+G.deepest*4; if(p.gold<cost) return;
+    btn.onclick=()=>{ const roomed=unlocked(p,'q3'); const cost=roomed?0:10+G.deepest*4;
+      if(p.gold<cost) return;
       p.gold-=cost; p.hp=p.maxHp; p.ap=p.maxAp;
+      if(roomed){ p.buffs.rested=180;
+        msg('Your room. Your window. Your candle. You wake <b style="color:#7ddf8a">Well-Rested</b> — +10% damage and stride for 3 minutes.'); }
+      else msg('You wake to church bells and the smell of broth. <b style="color:#7be3c4">Fully restored.</b>');
       addFx(p.x,p.y,'#7be3c4',12,2,2); sfx('shrine');
-      msg('You wake to church bells and the smell of broth. <b style="color:#7be3c4">Fully restored.</b>');
       updateHud(); saveGame(); openShop(id); };
   });
   body.querySelectorAll('button[data-repair]').forEach(btn=>{
@@ -3658,6 +3863,19 @@ function openShop(id){
       updateHud(); renderInv(); saveGame(); openShop(id);
     };
   });
+  body.querySelectorAll('button[data-drill]').forEach(btn=>{
+    btn.onclick=()=>{
+      const drillables=[];
+      for(const s of ['weapon','armor','hat']){ const it=p.equip[s]; if(it&&(it.sk||0)<2) drillables.push(it); }
+      p.bag.forEach(it=>{ if(['weapon','armor','hat'].includes(it.slot)&&(it.sk||0)<2) drillables.push(it); });
+      const it=drillables[+btn.dataset.drill]; if(!it) return;
+      const cost=80*((it.sk||0)+1);
+      if(p.gold<cost||p.ash<3) return;
+      p.gold-=cost; p.ash-=3;
+      it.sk=(it.sk||0)+1; it.gems=it.gems||[];
+      sfx('shrine'); msg('Ezekiel bores true. <b class="nm-'+it.rarity+'">'+it.name+'</b> gains an <b>empty socket</b>.');
+      updateHud(); renderInv(); saveGame(); openShop(id); };
+  });
   body.querySelectorAll('button[data-gset]').forEach(btn=>{
     btn.onclick=()=>{
       const gi=+btn.dataset.gset, gem=p.bag[gi];
@@ -3691,22 +3909,28 @@ function openShop(id){
     btn.onclick=()=>{ const key=btn.dataset.claim, i=+btn.dataset.qi;
       if(p.quests[key]!=='done') return;
       p.quests[key]='claimed';
+      p.unlocks=p.unlocks||{}; p.unlocks[key]=true;
       p.gold+=questReward(i);
-      const it=makeItem(Math.max(2,G.deepest),'magic');
+      const it=makeItem(Math.max(2,G.deepest)+(p.ng||0)*2,'magic');
       if(!addToBag(p,it)) dropItem(it,p.x,p.y);
-      sfx('gold-drop');
+      if(key==='q5'){ p.skillPts=(p.skillPts||0)+2; }
+      sfx('level');
       msg('<b style="color:var(--uniq-gold)">'+questReward(i)+' shillings</b> and a token of thanks: <b class="nm-'+it.rarity+'">'+it.name+'</b>.');
-      updateHud(); renderInv(); renderChar(); saveGame(); openShop(id); };
+      msg('<b style="color:#7ddf8a">Unlocked:</b> '+QUESTS[i].un,'#7ddf8a');
+      recalc(p); updateHud(); renderInv(); renderChar(); saveGame(); openShop(id); };
+  });
+  body.querySelectorAll('button[data-ng]').forEach(btn=>{
+    btn.onclick=()=>{ closeShop(); startNG(); };
   });
   body.querySelectorAll('button[data-respec]').forEach(btn=>{
     btn.onclick=()=>{
       if(btn.dataset.respec==='skills'){
-        const ranks=Object.values(p.tree||{}).reduce((a,b)=>a+b,0), cost=40*p.level;
+        const ranks=Object.values(p.tree||{}).reduce((a,b)=>a+b,0), cost=unlocked(p,'q5')?0:40*p.level;
         if(ranks<=0||p.gold<cost) return;
         p.gold-=cost; p.skillPts=(p.skillPts||0)+ranks; p.tree={};
         msg('Old Meg swallows. Your arts are <b style="color:#c78bf2">unlearned</b> — '+ranks+' points returned.');
       } else {
-        const granted=(p.level-1)*5, spent=granted-(p.statPts||0), cost=60*p.level;
+        const granted=(p.level-1)*5, spent=granted-(p.statPts||0), cost=unlocked(p,'q5')?0:60*p.level;
         if(spent<=0||p.gold<cost) return;
         p.gold-=cost; p.stats={...p.c.base}; p.statPts=granted;
         msg('The flesh forgets. <b style="color:#c78bf2">'+spent+' attribute points</b> returned.');
@@ -3757,7 +3981,9 @@ function useConsumable(i){
   if(it.consume==='scroll'||it.consume==='rope'){
     if(G.floor===0){ msg('You are already in Salem. The scroll declines to waste itself.','#9aa39b'); return; }
     if(G.indict){ msg('The indictment seals lesser doors. See it served, or take the stairs and forfeit.','#9aa39b'); return; }
-    spendConsumable(p,i); renderInv(); hideTooltip();
+    if(unlocked(p,'q4')) msg('The <b style="color:var(--brass)">Brass Door-Knocker</b> hums; the scroll re-folds itself, unspent.','#e6c878');
+    else spendConsumable(p,i);
+    renderInv(); hideTooltip();
     G.portal={floor:G.floor, x:p.x, y:p.y};
     msg('The scroll burns blue. A <b style="color:#7db1ff">portal</b> opens — it will hold until you step back through.');
     sfx('stairs'); startFloor(0,'rope');
@@ -3785,7 +4011,7 @@ function tryPickup(d){
   const p=G.player;
   if(dist(p.x,p.y,d.x,d.y)>1.6) return;
   const it=d.it;
-  if(it.potion){ if(it.potion==='hp')p.potH=Math.min(9,p.potH+1); else p.potA=Math.min(9,p.potA+1); }
+  if(it.potion){ if(it.potion==='hp')p.potH=Math.min(potCap(p),p.potH+1); else p.potA=Math.min(potCap(p),p.potA+1); }
   else if(!addToBag(p,it)){ msg('Your satchel is full.','#9aa39b'); return; }
   else msg('Picked up <b class="nm-'+it.rarity+'">'+it.name+'</b>'+((it.qty||1)>1?' \u00D7'+it.qty:''));
   d.dead=true; G.drops=G.drops.filter(x=>!x.dead);
@@ -5376,6 +5602,8 @@ function drawEnemy(e){
     ctx.fillStyle=`rgba(255,154,77,${g.toFixed(3)})`;
     ctx.beginPath();ctx.ellipse(rand(-2,2)*s,-6*s,2,3.4,0,0,7);ctx.fill(); }
   if(e.fear>0){ ctx.fillStyle='#c78bf2'; ctx.font='11px serif'; ctx.fillText('!',-2,-24*s); }
+  if(e.charmT>0){ ctx.strokeStyle='rgba(199,139,242,.75)'; ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(0,9*s,11*s,4.6*s,0,0,7);ctx.stroke(); }
   if(e.slow>0&&!e.stun){ ctx.strokeStyle='rgba(159,182,201,.45)'; ctx.lineWidth=1.2;
     ctx.beginPath();ctx.ellipse(0,9*s,9*s,3.6*s,0,0,7);ctx.stroke(); }
   if(e.elite){ ctx.strokeStyle='rgba(125,177,255,.7)'; ctx.lineWidth=1.5;
@@ -5567,7 +5795,8 @@ window.addEventListener('keydown',ev=>{
   }
 });
 function togglePanel(id){
-  closeShop(); closeStash();
+  closeShop();
+  if(id!=='inv-panel') closeStash(); // the satchel may stand open beside the chest
   if(id!=='journal-panel') document.getElementById('journal-panel').style.display='none';
   const el=document.getElementById(id);
   const show=el.style.display!=='flex';
@@ -5708,24 +5937,49 @@ function itemTooltipHTML(it,compare){
   if((it.qty||1)>1) h+='<div class="base">Bundle of '+it.qty+'</div>';
   if(it.flavor) h+='<div class="flavor">\u201C'+it.flavor+'\u201D</div>';
   if(compare){
-    const cur=G.player.equip[it.slot];
-    if(cur&&cur.id!==it.id) h+='<div class="hint">Worn: '+cur.name+(cur.dmgLo!=null?' ('+cur.dmgLo+'\u2013'+cur.dmgHi+')':cur.armorBase?' ('+cur.armorBase+' armor)':'')+'</div>';
+    const curs=(it.slot==='ring'?[G.player.equip.ring,G.player.equip.ring2]:[G.player.equip[it.slot]])
+      .filter(c=>c&&c.id!==it.id);
+    if(SHIFT&&curs.length){
+      for(const cur of curs){
+        h+='<div style="border-top:1px dashed rgba(200,155,60,.45);margin:.5rem 0 .35rem"></div>';
+        h+='<div class="itype" style="color:var(--brass-dim)">\u21c4 currently worn</div>';
+        h+=itemTooltipHTML(cur);
+      }
+    } else if(curs.length){
+      h+='<div class="hint">Worn: '+curs.map(c=>c.name).join(' \u00b7 ')+' \u2014 <b>hold Shift to compare</b></div>';
+    }
     if(compare!=='shop') h+='<div class="hint">Click to '+(compare==='bag'?'equip':'unequip')+'</div>';
   }
   return h;
 }
 const tipEl=document.getElementById('tooltip');
+let SHIFT=false, TIPGEN=null, TIPXY=[0,0];
+window.addEventListener('keydown',ev=>{ if(ev.key==='Shift'&&!SHIFT){ SHIFT=true; refreshTip(); } });
+window.addEventListener('keyup',ev=>{ if(ev.key==='Shift'){ SHIFT=false; refreshTip(); } });
+window.addEventListener('blur',()=>{ SHIFT=false; });
+function refreshTip(){
+  if(TIPGEN&&tipEl.style.display==='block'){
+    tipEl.innerHTML=TIPGEN();
+    positionTip(TIPXY[0],TIPXY[1]);
+  }
+}
 function showTextTooltip(html,ev){
+  TIPGEN=null;
   tipEl.innerHTML=html; tipEl.style.display='block';
   positionTip(ev.clientX,ev.clientY);
 }
-function showWorldTooltip(it,x,y){ tipEl.innerHTML=itemTooltipHTML(it); tipEl.style.display='block'; positionTip(x,y); }
+function showGenTooltip(gen,ev){
+  TIPGEN=gen; TIPXY=[ev.clientX,ev.clientY];
+  tipEl.innerHTML=gen(); tipEl.style.display='block';
+  positionTip(ev.clientX,ev.clientY);
+}
+function showWorldTooltip(it,x,y){ TIPGEN=null; tipEl.innerHTML=itemTooltipHTML(it); tipEl.style.display='block'; positionTip(x,y); }
 function positionTip(x,y){
   const r=tipEl.getBoundingClientRect();
   tipEl.style.left=clamp(x+18,6,VW-r.width-8)+'px';
   tipEl.style.top=clamp(y-r.height-12,6,VH-r.height-8)+'px';
 }
-function hideTooltip(){ tipEl.style.display='none'; }
+function hideTooltip(){ tipEl.style.display='none'; TIPGEN=null; }
 
 function renderInv(){
   const p=G.player;
@@ -5751,9 +6005,14 @@ function renderInv(){
     const d=document.createElement('div'); d.className='cell'+(it?' r-'+it.rarity:'');
     if(it){
       d.innerHTML='<span class="ic">'+itemIcon(it)+'</span>'+((it.qty||1)>1?'<span class="qty">'+it.qty+'</span>':'');
-      d.onmouseenter=ev=>showTextTooltip(itemTooltipHTML(it,'bag'),ev);
+      d.onmouseenter=ev=>showGenTooltip(()=>itemTooltipHTML(it,'bag'),ev);
       d.onmouseleave=hideTooltip;
-      d.onclick=()=>{ if(it.consume) useConsumable(i); else if(it.indict) useIndictment(i);
+      d.onclick=()=>{
+        if(stashOpen()&&!it.potion){
+          if(!stashAdd(it)){ msg('The chest is full.','#9aa39b'); return; }
+          G.player.bag.splice(i,1); saveStash(); saveGame(); sfx('pickup'); hideTooltip(); renderInv(); openStash(); return;
+        }
+        if(it.consume) useConsumable(i); else if(it.indict) useIndictment(i);
         else if(it.gem) msg('Ezekiel the blacksmith can set a hexstone into anything socketed.','#9aa39b');
         else equipFromBag(i); };
       d.oncontextmenu=ev=>{ev.preventDefault(); // drop on ground
@@ -5784,7 +6043,9 @@ function unequip(slot){
 }
 function renderChar(){
   const p=G.player; if(!p) return;
-  document.getElementById('char-sub').textContent=p.c.name+' \u00B7 '+p.c.arch;
+  const caps=masteryTitles(p);
+  document.getElementById('char-sub').textContent=p.c.name+' \u00B7 '+p.c.arch
+    +(caps.length?' \u00B7 '+caps.join(' & '):'')+((p.ng||0)>0?' \u00B7 NG+'+p.ng:'');
   const b=document.getElementById('char-body');
   const rows=[['might','Might'],['finesse','Finesse'],['intellect','Intellect'],['vitality','Vitality']];
   let h=p.statPts>0?'<div class="pts-note">'+p.statPts+' attribute point'+(p.statPts>1?'s':'')+' to bestow</div>':'';
@@ -5863,17 +6124,32 @@ function renderTree(){
       +s.key+' \u00B7 '+s.name+(locked?' <span style="color:#9aa39b;font-size:.68rem">(unlock below)</span>':'')
       +'<br><span class="dm">'+dmg+' \u00B7 '+cd+'s \u00B7 '+Math.ceil(s.cost*(p.costMul||1))+' aether</span></span></div>';
   }
+  const pathSpent=L=>{ let v=0;
+    for(const b2 of TREES[p.classId]) if(b2.path===L)
+      for(const nd of b2.nodes) v+=p.tree[nd.id]||0;
+    return v; };
+  const nodeLocked=(br,i,nd)=>{
+    if(nd.cap) return pathSpent(br.path)<(nd.req||12); // mastery answers only to devotion
+    if(i>0&&!((p.tree[br.nodes[i-1].id]||0)>0)) return true;
+    return false;
+  };
   for(const br of TREES[p.classId]){
-    h+='<div class="tree-head">'+br.br+'</div><div class="gr-rail">';
+    if(br.path){
+      const sp=pathSpent(br.path), cap=br.nodes.find(n2=>n2.cap);
+      h+='<div class="tree-head path">'+br.pn
+        +'<span class="pp" style="color:'+(cap&&sp>=(cap.req||12)?'#7ddf8a':'var(--parchment-dim)')+'">'
+        +sp+' pts'+(cap?' \u00b7 mastery at '+(cap.req||12):'')+'</span></div>';
+    } else h+='<div class="tree-head">'+br.br+'</div>';
+    h+='<div class="gr-rail">';
     br.nodes.forEach((nd,i)=>{
       const r=p.tree[nd.id]||0;
-      const locked=i>0&&!((p.tree[br.nodes[i-1].id]||0)>0);
+      const locked=nodeLocked(br,i,nd);
       const can=!locked&&r<nd.max&&(p.skillPts||0)>0;
       if(i>0) h+='<div class="gr-link'+(!locked?' on':'')+'"></div>';
-      h+='<div class="gr-cell"><div class="gr-node'
+      h+='<div class="gr-cell"><div class="gr-node'+(nd.cap?' cap':'')
         +(locked?' locked':r>=nd.max?' maxed':can?' can':r>0?' has':'')
-        +'" data-node="'+nd.id+'" data-br="'+br.br.replace(/"/g,'')+'">'
-        +(r>=nd.max?'\u2726':r||'')
+        +'" data-node="'+nd.id+'">'
+        +(r>=nd.max?'\u2726':nd.cap?'\u25c8':r||'')
         +'<span class="gr-pips">'+Array.from({length:nd.max},(_,k)=>'<i class="'+(k<r?'f':'')+'"></i>').join('')+'</span>'
         +'</div><span class="gr-name">'+nd.n+'</span></div>';
     });
@@ -5882,30 +6158,43 @@ function renderTree(){
   h+='<div class="shop-note" style="font-size:.7rem">Hover a seal to read its writ. Old Meg, the Sin-Eater, can unlearn everything \u2014 for a price.</div>';
   b.innerHTML=h;
   const lookup={};
-  for(const br of TREES[p.classId]) for(const nd of br.nodes) lookup[nd.id]={nd,br:br.br};
+  for(const br of TREES[p.classId]) br.nodes.forEach((nd,i)=>{ lookup[nd.id]={nd,br,i}; });
   b.querySelectorAll('.gr-node').forEach(el=>{
-    const {nd,br}=lookup[el.dataset.node]||{};
-    if(!nd) return;
+    const L=lookup[el.dataset.node]; if(!L) return;
+    const {nd,br,i}=L;
     el.onmouseenter=ev=>{
       const r=p.tree[nd.id]||0;
-      const locked=el.classList.contains('locked');
+      const locked=nodeLocked(br,i,nd);
+      let hint;
+      if(locked&&nd.cap&&pathSpent(br.path)<(nd.req||12)) hint='Requires '+(nd.req||12)+' points in this path ('+pathSpent(br.path)+' so far)';
+      else if(locked) hint='Inscribe the previous seal first';
+      else if(r>=nd.max) hint=nd.cap?'Mastered. Wear it well.':'Complete';
+      else if((p.skillPts||0)>0) hint='Click to inscribe';
+      else hint='No points to spend \u2014 they come with levels';
       showTextTooltip(
-        '<div class="iname" style="color:var(--brass)">'+nd.n+'</div>'
-        +'<div class="itype">'+br+' \u00B7 rank '+r+' of '+nd.max+'</div>'
+        '<div class="iname" style="color:'+(nd.cap?'#7ddf8a':'var(--brass)')+'">'+nd.n+'</div>'
+        +'<div class="itype">'+(br.path?br.br:br.br)+' \u00B7 rank '+r+' of '+nd.max+'</div>'
         +'<div class="base">'+nd.d+'</div>'
-        +(locked?'<div class="hint">Inscribe the previous seal first</div>'
-          :r>=nd.max?'<div class="hint">Mastered</div>'
-          :(p.skillPts||0)>0?'<div class="hint">Click to inscribe</div>'
-          :'<div class="hint">No points to spend \u2014 they come with levels</div>'),ev);
+        +'<div class="hint">'+hint+'</div>',ev);
     };
     el.onmouseleave=hideTooltip;
     el.onclick=()=>{
       const r=p.tree[nd.id]||0;
-      if((p.skillPts||0)<=0||el.classList.contains('locked')||r>=nd.max) return;
+      if((p.skillPts||0)<=0||nodeLocked(br,i,nd)||r>=nd.max) return;
       p.tree[nd.id]=r+1; p.skillPts--;
+      if(nd.cap){
+        msg('<b style="color:#7ddf8a">MASTERY:</b> you are now a master of the <b>'+br.br+'</b> \u2014 <i>'+nd.n.toLowerCase().replace(/\b\w/g,c2=>c2.toUpperCase())+'</i>.','#7ddf8a');
+        Music.toll&&Music.toll();
+      }
       recalc(p); renderTree(); renderChar(); buildSkillBar(); updateHud(); sfx('level'); saveGame();
     };
   });
+}
+function masteryTitles(p){
+  const caps=[];
+  for(const br of TREES[p.classId]) for(const nd of br.nodes)
+    if(nd.cap&&(p.tree[nd.id]||0)>0) caps.push(nd.n.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()));
+  return caps;
 }
 
 /* =====================================================================
@@ -5956,7 +6245,7 @@ function startGame(classId,hardcore){
   msg('Your <b>Investigations</b> are listed in the dossier (C).','#9aa39b');
   renderChar(); renderInv();
 }
-function continueGame(s){
+function continueGame(s,deep){
   const p=newPlayer(s.classId);
   p.level=s.level||1; p.xp=s.xp||0;
   p.xpNext=s.xpNext||Math.round(85*Math.pow(p.level,1.55));
@@ -5970,6 +6259,15 @@ function continueGame(s){
   p.ash=s.ash||0; p.bossFirsts=s.bossFirsts||{};
   p.pages=s.pages||{}; p.bounties=s.bounties||null;
   p.ending=s.ending||null; p.hardcore=!!s.hardcore;
+  p.unlocks=s.unlocks||{}; p.ng=s.ng||0;
+  // refund any tree points whose seals no longer exist (older grimoires)
+  {
+    const valid=new Set();
+    for(const br of TREES[p.classId]) for(const nd of br.nodes) valid.add(nd.id);
+    let refund=0;
+    for(const k in p.tree){ if(!valid.has(k)){ refund+=p.tree[k]; delete p.tree[k]; } }
+    if(refund>0){ p.skillPts=(p.skillPts||0)+refund; }
+  }
   p.bag=(s.bag||[]).map(reviveItem).filter(Boolean);
   uid=Math.max(uid,(s.uid||0)+1);
   recalc(p); p.hp=p.maxHp; p.ap=p.maxAp;
@@ -5978,9 +6276,10 @@ function continueGame(s){
   G.endingOffered=false; G.choiceOpen=false; G.endingBoss=null; G.indict=null; G.hardcoreDeath=false;
   document.getElementById('ending-screen').style.display='none';
   enterGame();
-  startFloor(s.floor||1);
+  startFloor(deep?Math.max(1,s.deepest||s.floor||1):(s.floor||1));
   const [sx,sy]=worldToIso(p.x,p.y); G.cam.x=sx; G.cam.y=sy;
-  msg('The mansion remembers you, '+p.c.name.replace('The ','')+'. Your investigation resumes.');
+  if(deep) msg('You wake at the mouth of <b>Depth '+G.floor+'</b> — the deepest the mansion has let you come.','#e6c878');
+  else msg('The mansion remembers you, '+p.c.name.replace('The ','')+'. Your investigation resumes.');
   renderChar(); renderInv();
 }
 const SLOT_SAVES=[null,null,null];
@@ -6005,14 +6304,22 @@ function renderSlots(){
     const main=document.createElement('button'); main.className='main';
     if(sv){
       main.innerHTML='Continue \u2014 '+(sv.hardcore?'\u26B0\uFE0F ':'')+CLASSES[sv.classId].name.replace('The ','')+' \u00B7 Lv '+sv.level
+        +((sv.ng||0)>0?' \u00B7 NG+'+sv.ng:'')
         +'<small>'+(sv.floor===0?'Salem Village':'Depth '+sv.floor)+' \u00B7 \uD83E\uDE99'+(sv.gold||0)
         +' \u00B7 deepest '+(sv.deepest||sv.floor)+(sv.hardcore?' \u00B7 hardcore':'')+'</small>';
       main.onclick=()=>{ CUR_SLOT=i; continueGame(sv); };
+      const deepest=sv.deepest||sv.floor||1;
+      if(deepest>1){
+        const dp=document.createElement('button'); dp.className='deep'; dp.textContent='\u2913'+deepest;
+        dp.title='Wake at the beginning of Depth '+deepest+' \u2014 the deepest reached';
+        dp.onclick=()=>{ CUR_SLOT=i; continueGame(sv,true); };
+        row.appendChild(main); row.appendChild(dp);
+      } else row.appendChild(main);
       const del=document.createElement('button'); del.className='del'; del.textContent='\u2715';
       del.title='Abandon this investigator';
       del.onclick=async()=>{ if(del.dataset.armed){ await Store.del(slotKey(i)); SLOT_SAVES[i]=null; renderSlots(); }
         else { del.dataset.armed='1'; del.textContent='Sure?'; setTimeout(()=>{del.dataset.armed='';del.textContent='\u2715';},2200); } };
-      row.appendChild(main); row.appendChild(del);
+      row.appendChild(del);
     } else {
       main.innerHTML='Slot '+(i+1)+' \u2014 a fresh investigator<small>Pick a class above, then Descend</small>';
       main.onclick=()=>{ CUR_SLOT=i;
@@ -6087,6 +6394,22 @@ document.getElementById('victory-deeper').onclick=()=>{
   msg('Below the throne, the foundations keep going down. Of course they do.','#c78bf2');
   startFloor(LAST_FLOOR+1,'down');
 };
+/* ---------- the Second Hanging: the mansion re-arms itself, crueler each time ---------- */
+function startNG(){
+  const p=G.player; if(!p) return;
+  p.ng=(p.ng||0)+1;
+  p.quests={}; p.bossFirsts={};
+  G.cache={}; G.deepest=1; G.portal=null; G.shopStock=null; G.abbyStock=null;
+  G.endingOffered=false; G.choiceOpen=false; map=null;
+  document.getElementById('victory-screen').style.display='none';
+  G.state='play';
+  startFloor(0);
+  msg('<b style="color:var(--uniq-gold)">The Second Hanging begins (NG+'+p.ng+').</b> Salem wakes to find the mansion lit again — crueler, richer, and expecting you. The investigations are posted anew.','#f0bd4e');
+  msg('You keep everything you are and carry. The house keeps everything it learned about you.','#9aa39b');
+  sfx('boss'); Music.toll&&Music.toll();
+  renderChar(); renderInv(); updateHud(); saveGame();
+}
+document.getElementById('victory-ng').onclick=()=>startNG();
 
 /* ---------- the title nocturne: Salem under a watching moon ---------- */
 function renderTitle(tt){
