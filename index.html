@@ -82,6 +82,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);
 #begin-btn:hover:not(:disabled),#continue-btn:hover:not(:disabled){color:#ffe9b0;box-shadow:0 0 0 3px #0b0d0c,0 0 0 4px var(--brass),0 0 30px rgba(200,155,60,.4)}
 #begin-btn:disabled,#continue-btn:disabled{opacity:.35;cursor:not-allowed}
 .keys-hint{font-size:.74rem;color:#5d655e;letter-spacing:.1em;text-align:center;line-height:1.7}
+#hc-row{display:flex;gap:.5rem;align-items:center;font-size:.8rem;color:var(--parchment-dim);cursor:pointer;letter-spacing:.06em}
+#hc-row input{accent-color:#9c2733;width:15px;height:15px;cursor:pointer}
+#hc-row:hover{color:var(--parchment)}
 
 /* ---------- HUD ---------- */
 #hud{position:absolute;left:0;right:0;bottom:0;z-index:20;display:none;pointer-events:none}
@@ -230,6 +233,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);
 .quest-row.done{color:#5d655e;text-decoration:line-through}
 .quest-row b{color:var(--brass);font-weight:400}
 
+/* ---------- the choice at the throne ---------- */
+#ending-screen{position:absolute;inset:0;z-index:56;display:none;align-items:center;justify-content:center;flex-direction:column;gap:1.1rem;
+  background:radial-gradient(ellipse at center, rgba(58,46,26,.62), rgba(5,4,3,.94) 75%)}
+#ending-screen h2{font-size:2.6rem;color:var(--uniq-gold);letter-spacing:.18em;font-weight:400;text-shadow:0 0 40px rgba(240,189,78,.5)}
+#ending-screen p{font-style:italic;color:var(--parchment-dim);max-width:620px;text-align:center;line-height:1.75;padding:0 1rem}
+#ending-screen button{font-family:inherit;font-size:.92rem;letter-spacing:.16em;text-transform:uppercase;background:#1c1812;border:1px solid var(--brass);color:#ffe9b0;padding:.65rem 1.6rem;cursor:pointer}
+#ending-screen button:hover{background:#2a2218}
+#ending-end{border-color:var(--blood);color:#e0a0a8;background:#1c1212}
+#ending-end:hover{background:#2a1418}
+
 /* ---------- victory ---------- */
 #victory-screen{position:absolute;inset:0;z-index:55;display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem;
   background:radial-gradient(ellipse at center, rgba(60,48,8,.55), rgba(5,4,3,.93) 75%)}
@@ -287,6 +300,7 @@ body{overscroll-behavior:none;-webkit-touch-callout:none}
   <h1 class="sc">Gaslamp <em>&amp;</em> Gallows</h1>
   <div class="sub">Salem, Massachusetts, 1894. A coven has seized the old Blackwood Mansion at the edge of town,<br>and the people who go to look at it do not come back. Someone must go inside.<br>Choose who takes the case.</div>
   <div class="classes" id="class-cards"></div>
+  <label id="hc-row"><input type="checkbox" id="hc-box"> ⚰️ Hardcore — death is the rope. No rising; the fallen haunt the floors where they fell.</label>
   <button id="begin-btn" disabled>Descend</button>
   <div id="slot-list"></div>
   <div class="keys-hint">
@@ -353,6 +367,15 @@ body{overscroll-behavior:none;-webkit-touch-callout:none}
 <div class="side panel" id="shop-panel">
   <div class="ptitle sc" id="shop-title">Shop <small id="shop-sub"></small></div>
   <div class="body" id="shop-body"></div>
+</div>
+
+<div id="ending-screen">
+  <h2 class="sc">She Kneels</h2>
+  <p id="ending-p"></p>
+  <div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center">
+    <button id="ending-spare">Take the Rope From Her Neck</button>
+    <button id="ending-end">Light the Pyre</button>
+  </div>
 </div>
 
 <div id="victory-screen">
@@ -482,6 +505,20 @@ function stashAdd(it){
   STASH.push(it); return true;
 }
 let SAVED=null;
+/* ---------- bones: hardcore dead haunt the floors where they fell ---------- */
+let BONES=[];
+async function loadBones(){ try{ BONES=(await Store.get('gng-bones'))||[]; }catch(e){ BONES=[]; } }
+function saveBones(){ Store.set('gng-bones',BONES); }
+function recordBones(){
+  const p=G.player; if(!p) return;
+  const floor=Math.max(1,Math.min(G.floor,LAST_FLOOR+6));
+  const gear=SLOTS.map(s=>p.equip[s]).filter(Boolean)
+    .sort((a,b)=>sellValue(b)-sellValue(a)).slice(0,3).map(stripItem);
+  BONES=BONES.filter(b=>b.floor!==floor); // one ghost per floor
+  BONES.unshift({classId:p.classId, level:p.level, floor, gear});
+  while(BONES.length>6) BONES.pop();
+  saveBones();
+}
 function stripItem(it){
   if(!it) return null;
   const o={...it};
@@ -505,6 +542,7 @@ function snapshot(){
     equip:Object.fromEntries(SLOTS.map(s=>[s,stripItem(p.equip[s])])),
     pet:stripItem(p.equip.pet), quests:p.quests||{}, deepest:G.deepest||G.floor, portal:G.portal||null,
     ash:p.ash||0, bossFirsts:p.bossFirsts||{}, pages:p.pages||{}, bounties:p.bounties||null,
+    ending:p.ending||null, hardcore:!!p.hardcore,
     bag:p.bag.map(stripItem)};
 }
 function saveGame(){ const s=snapshot(); if(s) Store.set(slotKey(CUR_SLOT),s); }
@@ -977,6 +1015,7 @@ function addToBag(p,it){
 function sellValue(it){
   if(it.potion) return 4;
   if(it.consume) return it.consume==='scroll'?15:it.consume==='bomb'?16:22;
+  if(it.indict) return 40*it.tier;
   const rm=it.rarity==='unique'?9:it.rarity==='magic'?3:1;
   if(it.pet) return Math.round(60*PET_MULT[it.rarity]);
   return Math.max(2,Math.round(it.ilvl*5*rm+it.affixes.length*it.ilvl*2));
@@ -1058,6 +1097,7 @@ function itemIcon(it){
   if(it.potion) return it.potion==='hp'?SLOT_ICONS.potionH:SLOT_ICONS.potionA;
   if(it.pet) return petDef(it).glyph2;
   if(it.consume) return it.consume==='scroll'?'\uD83D\uDCDC':it.consume==='bomb'?'\uD83E\uDDE8':'\uD83E\uDDF4';
+  if(it.indict) return '\u2696\uFE0F';
   return SLOT_ICONS[it.slot];
 }
 
@@ -1295,7 +1335,7 @@ const G={
   player:null, enemies:[], projs:[], drops:[], fx:[], texts:[],
   stairs:null, up:null, shrineUsed:false, boss:null, kills:0,
   cache:{}, npcs:[], petE:null, turrets:[], minions:[],
-  chests:[], breaks:[], pools:[], decoys:[],
+  chests:[], breaks:[], pools:[], decoys:[], telegraphs:[], event:null, indict:null, indictNext:null,
   shopStock:null, stockDepth:0, portal:null, mmShow:true, mmBig:false,
   mouse:{x:0,y:0,tx:0,ty:0,down:false},
   cam:{x:0,y:0},
@@ -1401,6 +1441,8 @@ const ENEMY_TYPES=[
   {id:'marionette',n:'Strung Marionette',hp:36, dmg:[7,11], spd:3.3, xp:48, color:'#b9a48f', size:.95,  melee:true, minF:9, jerky:true},
   {id:'coachman', n:'Headless Coachman', hp:120,dmg:[10,16],spd:1.9, xp:95, color:'#2e2a3a', size:1.4,  melee:true, minF:10, lunge:{min:3,max:8,spd:3.2,dur:.8,cd:4}},
   {id:'imp',      n:'Coven Imp',         hp:42, dmg:[1,2],  spd:4.6, xp:30, color:'#7dc26e', size:.6,   melee:true, minF:2, flees:true},
+  {id:'sabbatcandle', n:'Sabbat Candle',  hp:50, dmg:[0,0], spd:0,   xp:25, color:'#f0bd4e', size:.8,   still:true, minF:99},
+  {id:'revenant', n:'Revenant',          hp:80, dmg:[6,11], spd:2.6, xp:80, color:'#9fb6c9', size:1.05, melee:true, minF:99, lunge:{min:2,max:6,spd:2.6,dur:.5,cd:3}},
 ];
 const TYPE_BY_ID=Object.fromEntries(ENEMY_TYPES.map(t=>[t.id,t]));
 const ELITE_PREFIX=['Shrieking','Moonstruck','Iron-Boned','Pestilent','Gloaming','Hexed'];
@@ -1461,8 +1503,22 @@ function spawnEnemies(rooms, floorNum){
     const imp=addEnemy(TYPE_BY_ID.imp, r.x+randi(1,r.w-2), r.y+randi(1,r.h-2), floorNum, false);
     if(imp) imp.fleeT=12;
   }
-  if(floorNum%3===0){ // boss floor — the way down is sealed until they fall
-    const bi=floorNum<=LAST_FLOOR?(floorNum/3-1):((floorNum/3-1)%BOSSES.length);
+  // a hardcore investigator died here once; something kept the coat
+  const bn=G.indict?null:BONES.find(b=>b.floor===floorNum);
+  if(bn&&rooms.length>2){
+    const r=choice(rooms.slice(1));
+    const rev=addEnemy(TYPE_BY_ID.revenant, r.x+randi(1,r.w-2), r.y+randi(1,r.h-2), floorNum, false);
+    if(rev){
+      rev.revenant=bn;
+      rev.name='Revenant of '+CLASSES[bn.classId].name.replace('The ','the ')+', Lv '+bn.level;
+      rev.hp=rev.maxHp=scaleHp(60+bn.level*12,floorNum);
+      rev.dmgLo*=1+bn.level*0.04; rev.dmgHi*=1+bn.level*0.04;
+      rev.xp=Math.round(rev.xp*(1+bn.level*0.08));
+    }
+  }
+  if(floorNum%3===0||G.indict){ // boss floor — the way down is sealed until they fall
+    const bi=G.indict?choice([0,1,2,3,5,6,7]):
+      (floorNum<=LAST_FLOOR?(floorNum/3-1):((floorNum/3-1)%BOSSES.length));
     const b=BOSSES[bi];
     const r=rooms[rooms.length-1];
     const t={id:'boss',n:b.n,hp:scaleHp(40*b.hpM,floorNum),dmg:[scaleDmg(6,floorNum)*b.dmgM,scaleDmg(10,floorNum)*b.dmgM],
@@ -1471,7 +1527,14 @@ function spawnEnemies(rooms, floorNum){
       lunge:b.charges?{min:3,max:9,spd:3.0,dur:.9,cd:4.5}:null,
       summons:b.summons?{type:floorNum>=9?'marionette':'thrall',cd:7,max:3}:null};
     const e=addEnemy(t, r.cx+1, r.cy+1, floorNum, false, true);
-    e.boss=true; e.name=b.n; e.final=!!b.final; e.bossIdx=bi; G.boss=e;
+    e.boss=true; e.name=b.n; e.final=!!b.final&&!G.indict; e.bossIdx=bi; e.teleM=b.dmgM; G.boss=e;
+  }
+  // the writ's terms, stamped into everything that walks here
+  if(G.indict) for(const e of G.enemies){
+    if(indictMod('iron')){ e.hp=Math.round(e.hp*1.4); e.maxHp=e.hp; }
+    if(indictMod('cruel')){ e.dmgLo*=1.3; e.dmgHi*=1.3; }
+    if(indictMod('vamp')) e.vamp=true;
+    if(indictMod('volatile')&&!e.boss&&Math.random()<0.5) e.volatile=true;
   }
 }
 function addEnemy(t,x,y,f,elite,raw,special){
@@ -1512,6 +1575,13 @@ function hitEnemy(e,dmg,crit,burn){
   if(e.dead) return;
   const p=G.player;
   if(e.stonehide) dmg*=0.5;
+  // the jury shields the judge; the candles shield the mother
+  if(e.boss&&e.bossIdx===1&&e.kids&&e.kids.some(k=>!k.dead)){
+    dmg*=0.4; if(Math.random()<0.25) addText(e.x,e.y-1,'shielded by the jury','#b59ad1');
+  }
+  if(e.boss&&e.bossIdx===4&&e.candles&&e.candles.some(k=>!k.dead)){
+    dmg*=0.4; if(Math.random()<0.25) addText(e.x,e.y-1,'the candles hold','#f0bd4e');
+  }
   if(treeVal(p,'execP')>0&&(e.stun>0||e.burn>0)) dmg*=1+treeVal(p,'execP')/100;
   if(treeVal(p,'hexP')>0&&(e.slow>0||e.fear>0||e.stun>0)) dmg*=1+treeVal(p,'hexP')/100;
   e.hp-=dmg; e.hitFlash=.12; e.aggro=true;
@@ -1524,9 +1594,16 @@ function hitEnemy(e,dmg,crit,burn){
   if(treeVal(p,'slowHit')>0) e.slow=Math.max(e.slow,treeVal(p,'slowHit')*ccMul(p));
   if(p.leech>0){ p.hp=Math.min(p.maxHp,p.hp+dmg*p.leech/100); }
   sfx('hit');
+  if(e.hp>0&&hasPw(p,'twentieth')&&e.hp<e.maxHp*(e.boss?0.05:0.15)){
+    addText(e.x,e.y,'HANGED','#f0bd4e',true); addFx(e.x,e.y,'#f0bd4e',8,2,2.5); e.hp=0;
+  }
   if(e.hp<=0) killEnemy(e);
 }
 function killEnemy(e){
+  // if every page has been read, the last blow on the final boss never lands
+  if(e.final&&!G.endingOffered&&Object.keys(G.player.pages||{}).length>=JOURNAL.length){
+    e.hp=1; e.dead=false; G.endingOffered=true; offerEnding(e); return;
+  }
   e.dead=true; G.kills++;
   G.stains.push({x:e.x,y:e.y,r:(e.type.size||1)}); if(G.stains.length>50) G.stains.shift();
   addFx(e.x,e.y,e.type.color,14,2.6,3);
@@ -1541,14 +1618,22 @@ function killEnemy(e){
   if(p.apKill>0){ p.ap=Math.min(p.maxAp,p.ap+p.apKill); }
   bountyKill(e);
   gainXp(Math.round(e.xp));
-  const luck=p.luck+(p.buffs.fortune>0?40:0);
-  const gMul=(p.buffs.fortune>0?1.4:1);
+  const luck=p.luck+(p.buffs.fortune>0?40:0)+indictLuck();
+  const gMul=(p.buffs.fortune>0?1.4:1)*(1+indictGold()/100);
   if(e.type.id==='imp'){
     // the imp's sack bursts: stolen plate everywhere
     dropGold((40+G.floor*16)*gMul,e.x,e.y);
     dropItem(makeItem(G.floor+1,Math.random()<.5?'magic':null,luck),e.x+.5,e.y);
     dropAsh(2,e.x-.5,e.y);
     msg('The <b style="color:#7dc26e">Coven Imp</b> bursts like a dropped purse.','#7dc26e');
+  }
+  if(e.revenant){
+    msg('The revenant comes apart with something like <b style="color:#9fb6c9">relief</b>, and lets go of what it carried.','#9fb6c9');
+    const gear=(e.revenant.gear||[]).map(reviveItem).filter(Boolean);
+    gear.slice(0,2).forEach((it,i)=>dropItem(it,e.x+i*0.6-0.3,e.y+0.4));
+    dropGold((30+G.floor*8)*gMul,e.x,e.y-.5);
+    const bi2=BONES.indexOf(e.revenant);
+    if(bi2>=0){ BONES.splice(bi2,1); saveBones(); }
   }
   if(e.boss){
     const first=!p.bossFirsts['b'+G.floor];
@@ -1562,6 +1647,17 @@ function killEnemy(e){
     document.getElementById('bossbar').style.display='none';
     msg('<b style="color:var(--uniq-gold)">'+e.name+'</b> is no more. The mansion shudders.', '#f0bd4e');
     sfx('gold-drop');
+    if(G.indict&&!G.indict.done){
+      G.indict.done=true;
+      dropItem(makeItem(G.floor+1,'unique'),e.x,e.y+.8);
+      dropAsh(4+G.indict.tier,e.x-.8,e.y);
+      dropGold(80+G.indict.tier*40,e.x,e.y-.8);
+      if(Math.random()<0.6) dropItem(makeIndictment(G.indict.tier+1),e.x+.8,e.y+.4);
+      msg('<b style="color:#7db1ff">The indictment is served.</b> The glowing stair will carry you home to Salem.','#7db1ff');
+    } else if(!G.indict&&G.floor>=9&&Math.random()<(G.floor>=LAST_FLOOR?0.7:0.35)){
+      dropItem(makeIndictment(Math.max(1,1+Math.floor((G.floor-9)/3))),e.x+.8,e.y-.4);
+      msg('Among the remains: an <b style="color:#7db1ff">Indictment of the Hollows</b> — a writ against a deeper, crueler floor.','#7db1ff');
+    }
     completeBossQuest();
   } else if(e.special){
     dropItem(makeItem(G.floor+1,Math.random()<.06+luck*0.0015?'unique':'magic',luck),e.x,e.y);
@@ -1596,12 +1692,71 @@ function completeBossQuest(){
   }
   if(f===LAST_FLOOR){
     setTimeout(()=>{
-      document.getElementById('victory-p').textContent=
-        'Abigail the Endless is ended. The coven\u2019s hold on the Blackwood Mansion breaks like a fever, and somewhere above you, for the first time in two centuries, the bells of Salem ring on their own. The town will sleep tonight. You may not.';
+      let txt;
+      if(p.ending==='spared')
+        txt='You did not kill Abigail Blackwood. You finished her hanging the only way it could be finished \u2014 by taking the rope away. The mansion settles around you with a sound like a house, and nothing more; the chair she kept two hundred years stands empty at last, pushed in. Above you the bells of Salem ring on their own, and on Gallows Hill, for the first time since 1692, it is only weather. In town they will say you slew a monster. Let them. You read the pages. You know what you actually did.';
+      else if(p.ending==='ended')
+        txt='The pyre takes Abigail the Endless with a sound like a long-held breath, finally released. She did not struggle. She had waited two hundred years for somebody to know the whole of it \u2014 the broken rope, the pocketed fee, the nineteen names \u2014 and being known, she was content to end. The bells of Salem ring on their own tonight. The fire on the hill burns clean, and warm, and you stay beside it longer than you mean to.';
+      else
+        txt='Abigail the Endless is ended. The coven\u2019s hold on the Blackwood Mansion breaks like a fever, and somewhere above you, for the first time in two centuries, the bells of Salem ring on their own. The town will sleep tonight. You may not \u2014 because as the dust settles, loose pages flutter in rooms you never quite finished searching. There was more to know. There were fifteen pages. (Press J.)';
+      document.getElementById('victory-p').textContent=txt;
       document.getElementById('victory-screen').style.display='flex';
       G.state='victory';
     },1400);
   }
+}
+/* ---------- the choice, if you have read everything ---------- */
+function offerEnding(e){
+  G.choiceOpen=true; G.endingBoss=e; e.stun=9999;
+  document.getElementById('ending-p').innerHTML=
+    'The last blow never lands. Abigail kneels among the guttering candles, and the whole house holds its breath, waiting on you.<br><br>'+
+    'You have read all fifteen pages. You know about the rope that broke and the fee the judge pocketed; about the nineteen who hanged clean and the twentieth who did not; about the chair kept two hundred years for anyone who would simply <i>understand</i>.<br><br>'+
+    'She looks up \u2014 not pleading. Curious. \u201cWell, little lamp,\u201d she says. \u201cYou actually read them.\u201d';
+  document.getElementById('ending-screen').style.display='flex';
+  sfx('boss');
+}
+function makeEndingRelic(kind){
+  const ilvl=16;
+  if(kind==='pardon'){
+    const it={id:uid++, slot:'amulet', ilvl, rarity:'unique', baseName:'Reliquary of Ash', name:'Abigail\u2019s Pardon',
+      flavor:'Signed in 1894, for a crime of 1692. Better late, she said, than ash.',
+      pw:'pardon', pwd:'The coven remembers her mercy: lesser foes are slower to notice you, and once each floor a killing blow leaves you at 1 life instead.', affixes:[]};
+    for(const [k,m] of [['luck',2.0],['goldf',1.6],['hp',1.4]]){
+      const a=AFFIXES.find(x=>x.k===k);
+      it.affixes.push({k,v:Math.max(1,Math.round(a.v(ilvl)*m)),t:a.t,def:a});
+    }
+    return it;
+  }
+  const it={id:uid++, slot:'weapon', ilvl, rarity:'unique', baseName:'Headsman\u2019s Falchion', name:'The Twentieth Rope',
+    flavor:'Nineteen hanged clean. This one settles what the rope was owed.',
+    pw:'twentieth', pwd:'Foes below 15% of their life are hanged outright. The great ones, below 5%.',
+    ...baseStatsFor('weapon',ilvl), affixes:[]};
+  it.dmgLo=Math.round(it.dmgLo*1.4); it.dmgHi=Math.round(it.dmgHi*1.4);
+  for(const [k,m] of [['pct',1.6],['leech',1.4],['crit',1.2]]){
+    const a=AFFIXES.find(x=>x.k===k);
+    it.affixes.push({k,v:Math.max(1,Math.round(a.v(ilvl)*m)),t:a.t,def:a});
+  }
+  return addDurability(it);
+}
+function resolveFinal(spared){
+  const e=G.endingBoss, p=G.player; if(!e) return;
+  document.getElementById('ending-screen').style.display='none';
+  G.choiceOpen=false; G.endingBoss=null;
+  p.ending=spared?'spared':'ended';
+  e.dead=true; G.kills++;
+  document.getElementById('bossbar').style.display='none';
+  addFx(e.x,e.y,spared?'#f0bd4e':'#9c2733',30,3,3.5);
+  G.fx.push({ring:[e.x,e.y,4],t:.6,color:spared?'#f0bd4e':'#9c2733'});
+  gainXp(Math.round(e.xp));
+  p.bossFirsts['b'+G.floor]=true;
+  dropItem(makeEndingRelic(spared?'pardon':'rope'),e.x,e.y);
+  dropGold(120+G.floor*20,e.x+.6,e.y);
+  dropAsh(8,e.x,e.y-.6);
+  if(spared) msg('You take the rope from her neck. She stands, two hundred years of patience leaving her like smoke, and is <b style="color:var(--uniq-gold)">released</b>. Something of hers remains for you.','#f0bd4e');
+  else msg('She does not struggle. The pyre takes her <b style="color:var(--blood)">clean</b>, and leaves you what the rope was owed.','#e08a8a');
+  sfx(spared?'level':'die');
+  completeBossQuest();
+  updateHud(); saveGame();
 }
 function dropGold(amt,x,y){
   if(amt<=0) return;
@@ -1651,6 +1806,10 @@ function hurtPlayer(raw,srcName,attacker){
   }
   wearItem(p.equip.armor,0.12); wearItem(p.equip.hat,0.06);
   wearItem(p.equip.gloves,0.05); wearItem(p.equip.boots,0.05);
+  if(p.hp-dmg<=0&&hasPw(p,'pardon')&&!G.pardonUsed){
+    G.pardonUsed=true; dmg=Math.max(0,p.hp-1);
+    addText(p.x,p.y,'her Pardon holds','#f0bd4e'); addFx(p.x,p.y,'#f0bd4e',12,2,2.5);
+  }
   p.hp-=dmg; p.hitFlash=.18;
   if(hasPw(p,'nova')&&p.hp>0&&p.hp<p.maxHp*0.30&&(!p.novaT||G.time-p.novaT>8)){
     p.novaT=G.time;
@@ -1667,9 +1826,20 @@ function hurtPlayer(raw,srcName,attacker){
 }
 function playerDie(srcName){
   const p=G.player; p.dead=true; sfx('die');
-  const lost=Math.round(p.xp*0.25); p.xp-=lost;
-  document.getElementById('death-p').textContent=
-    'Slain by '+(srcName||'the Hollows')+' on floor '+G.floor+'. The crowd disperses. '+(lost>0?fmt(lost)+' experience scatters like ash.':'');
+  if(p.hardcore){
+    G.hardcoreDeath=true;
+    recordBones();
+    Store.del(slotKey(CUR_SLOT)); SLOT_SAVES[CUR_SLOT]=null;
+    document.getElementById('death-p').textContent=
+      'Slain by '+(srcName||'the Hollows')+' on floor '+G.floor+'. The rope holds. What '
+      +p.c.name.replace('The ','the ')+' carried will wait in the dark, on the floor where they fell — worn by something that remembers being them.';
+    document.getElementById('resurrect-btn').textContent='Commit Them to the Hill';
+  } else {
+    const lost=Math.round(p.xp*0.25); p.xp-=lost;
+    document.getElementById('death-p').textContent=
+      'Slain by '+(srcName||'the Hollows')+' on floor '+G.floor+'. The crowd disperses. '+(lost>0?fmt(lost)+' experience scatters like ash.':'');
+    document.getElementById('resurrect-btn').textContent='Rise from the Burying Point';
+  }
   document.getElementById('death-screen').style.display='flex';
 }
 
@@ -1825,7 +1995,7 @@ function usePotion(kind){
    Per-frame update
    ===================================================================== */
 function cacheFloor(){
-  if(G.player==null||map==null) return;
+  if(G.player==null||map==null||G.indict) return; // indicted floors are one visit only
   G.cache[G.floor]={map,decor,seen,lit,MW,MH,enemies:G.enemies,drops:G.drops,stains:G.stains,
     boss:G.boss,shrineUsed:G.shrineUsed,shrineType:G.shrineType,stairs:G.stairs,up:G.up,npcs:G.npcs,
     chests:G.chests,breaks:G.breaks};
@@ -1838,11 +2008,14 @@ function spawnAdjacent(pt){
 }
 function startFloor(n,from){
   cacheFloor();
-  G.floor=n; G.deepest=Math.max(G.deepest||1,n);
+  if(from==='indict'){ G.indict=G.indictNext; G.indictNext=null; }
+  else G.indict=null;
+  G.floor=n;
+  if(!G.indict) G.deepest=Math.max(G.deepest||1,n);
   const p=G.player;
-  p.path=[]; G.projs=[]; G.fx=[]; G.texts=[]; G.turrets=[]; G.minions=[]; G.pools=[]; G.decoys=[];
+  p.path=[]; G.projs=[]; G.fx=[]; G.texts=[]; G.turrets=[]; G.minions=[]; G.pools=[]; G.decoys=[]; G.telegraphs=[];
   p.pendingAttack=null; p.pendingPickup=null; p.pendingShop=null; p.pendingChest=null; p.pendingBreak=null;
-  const cached=G.cache[n];
+  const cached=G.indict?null:G.cache[n];
   if(cached){
     ({map,decor,seen,lit,MW,MH}=cached);
     G.enemies=cached.enemies; G.drops=cached.drops; G.stains=cached.stains;
@@ -1854,6 +2027,8 @@ function startFloor(n,from){
     G.chests=[]; G.breaks=[];
     G.stairs={x:14,y:3}; G.up=null;
     G.npcs=NPCS.map(d=>({...d}));
+    if(p.ending==='spared') G.npcs.push({id:'abigail', n:'A Quiet Woman by the Gallows', glyph:'🕯️', color:'#f0bd4e', x:24, y:14,
+      greet:'The hill is pleasant in the evenings, now that it is only a hill.'});
     G.cacheTownStart={x:start.cx,y:start.cy};
   } else {
     G.shrineUsed=false;
@@ -1864,7 +2039,10 @@ function startFloor(n,from){
     spawnEnemies(rooms,n);
     G.drops=[]; G.stains=[];
     placeFurnishings(rooms,n);
+    if(G.enemies.some(e=>e.revenant&&!e.dead))
+      msg('Something on this floor wears a <b style="color:#9fb6c9">familiar coat</b>.','#9fb6c9');
   }
+  G.pardonUsed=false;
   // place the player by direction of travel
   if(n===0){
     const s=G.cacheTownStart||{x:14,y:22};
@@ -1874,8 +2052,12 @@ function startFloor(n,from){
   else if(from==='portal'&&G.portal){ const a=spawnAdjacent({x:Math.round(G.portal.x),y:Math.round(G.portal.y)}); p.x=a.x; p.y=a.y; }
   else { const a=spawnAdjacent(G.up||G.stairs); p.x=a.x; p.y=a.y; }
   syncPet();
-  const [t,sub]=floorTitle(n);
-  document.getElementById('floor-name').innerHTML=(n===0?'':'Depth '+n+' — ')+'<b>'+t+'</b>';
+  let [t,sub]=floorTitle(n);
+  if(G.indict){
+    t='An Indicted Floor — Tier '+G.indict.tier;
+    sub=G.indict.mods.map(k=>INDICT_MODS.find(m=>m.k===k).n).join(' · ');
+  }
+  document.getElementById('floor-name').innerHTML=(G.indict?'⚖️ ':(n===0?'':'Depth '+n+' — '))+'<b>'+t+'</b>';
   const b=document.getElementById('banner');
   document.getElementById('banner-h').textContent=t;
   document.getElementById('banner-p').textContent=sub;
@@ -1898,6 +2080,7 @@ function syncPet(){
 
 function update(dt){
   const p=G.player; if(!p) return;
+  if(G.choiceOpen) return;
   G.time+=dt;
   // cooldowns / regen
   for(const k in p.cds) p.cds[k]=Math.max(0,p.cds[k]-dt);
@@ -1947,10 +2130,14 @@ function update(dt){
         msg('The stair is <b style="color:var(--blood)">sealed</b>. '+G.boss.name+' still draws breath.','#e08a8a'); }
       // push back off the seal
       p.x=ptx; p.y=pty+1; p.path=[];
-    } else { sfx('stairs'); startFloor(G.floor+1,'down'); return; }
+    } else if(G.indict){ sfx('stairs'); msg('The stair carries you home to <b>Salem</b>.'); startFloor(0,'rope'); return; }
+    else { sfx('stairs'); startFloor(G.floor+1,'down'); return; }
   }
   if(map[pty]&&map[pty][ptx]===T_UP&&!p.dead){
-    sfx('stairs'); startFloor(G.floor-1,'up'); return;
+    sfx('stairs');
+    if(G.indict){ msg('You abandon the indicted floor. The writ is spent either way.','#9aa39b'); startFloor(0,'rope'); }
+    else startFloor(G.floor-1,'up');
+    return;
   }
   // coin and ash leap into honest pockets; pages into the journal
   for(const d of G.drops){
@@ -1996,11 +2183,12 @@ function update(dt){
   if(G.floor===0){
     for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){ seen[y][x]=true; lit[y][x]=0.85; }
   } else {
-  for(let dy=-8;dy<=8;dy++)for(let dx=-8;dx<=8;dx++){
+  const LR=indictMod('dark')?5:8;
+  for(let dy=-LR;dy<=LR;dy++)for(let dx=-LR;dx<=LR;dx++){
     const x=ptx+dx,y=pty+dy;
     if(x<0||y<0||x>=MW||y>=MH) continue;
     const d=Math.hypot(dx,dy);
-    if(d<8&&hasLOS(p.x,p.y,x,y)){ seen[y][x]=true; lit[y][x]=Math.max(lit[y][x],clamp(1-d/8,0,1)); }
+    if(d<LR&&hasLOS(p.x,p.y,x,y)){ seen[y][x]=true; lit[y][x]=Math.max(lit[y][x],clamp(1-d/LR,0,1)); }
   }
   for(let y=0;y<MH;y++)for(let x=0;x<MW;x++) if(lit[y][x]>0) lit[y][x]=Math.max(0,lit[y][x]-dt*1.6);
   }
@@ -2015,18 +2203,38 @@ function update(dt){
       if(Math.random()<dt*6) addFx(e.x,e.y,'#ff9a4d',1,.6);
       if(e.hp<=0){ killEnemy(e); continue; } }
     const dPlayer=dist(e.x,e.y,p.x,p.y);
-    if(!e.aggro && dPlayer<8 && hasLOS(e.x,e.y,p.x,p.y)){
+    const aggroR=(hasPw(p,'pardon')&&!e.boss)?6:8;
+    if(!e.aggro && dPlayer<aggroR && hasLOS(e.x,e.y,p.x,p.y)){
       e.aggro=true;
       // the pack wakes together
       for(const o of G.enemies) if(!o.dead&&!o.aggro&&dist(e.x,e.y,o.x,o.y)<4) o.aggro=true;
     }
     if(!e.aggro||p.dead||e.stun>0) continue;
+    // a coachman mid-gallop stops for nothing
+    if(e.dashT>0){
+      e.dashT-=dt;
+      const nx=e.x+e.dashX*dt, ny=e.y+e.dashY*dt;
+      if(walkable(Math.round(nx),Math.round(ny))){ e.x=nx; e.y=ny; } else e.dashT=0;
+      if(!p.dead&&dist(e.x,e.y,p.x,p.y)<1.3&&!e.dashHit){ e.dashHit=true; hurtPlayer(rand(e.dmgLo,e.dmgHi)*1.3,e.name,e); }
+      if(Math.random()<dt*14) addFx(e.x,e.y,e.type.color,1,1.2);
+      continue;
+    }
     // a hay effigy or a phantasmal double draws their hatred
     let tgt=(tank&&dist(e.x,e.y,tank.x,tank.y)<5.5)?tank:p;
     for(const dc of G.decoys){ if(!dc.popped&&dist(e.x,e.y,dc.x,dc.y)<6){ tgt=dc; break; } }
     const dP=dist(e.x,e.y,tgt.x,tgt.y);
     const spd=e.spd*(e.slow>0?0.45:1);
     e.atkT-=dt;
+    // bosses declaim, and the declamation has teeth
+    if(e.boss){
+      bossAI(e,dt,tgt,dP);
+      if(e.casting>0){ e.casting-=dt; continue; }
+    }
+    // sabbat candles only stand and burn
+    if(e.type.still){
+      if(Math.random()<dt*6) addFx(e.x,e.y-0.3,'#f0bd4e',1,.4,1.5);
+      continue;
+    }
     // terror: the Word sends them scrambling
     if(e.fear>0){ e.fear-=dt; moveAway(e,p,spd*1.25,dt);
       if(Math.random()<dt*5) addFx(e.x,e.y,'#c78bf2',1,.8);
@@ -2119,6 +2327,7 @@ function update(dt){
     if(walkable(Math.round(nx),Math.round(ny))){e.x=nx;e.y=ny;}
   }
   updateCompanions(dt);
+  updateTelegraphs(dt);
   if(G.boss&&!G.boss.dead){
     document.getElementById('boss-fill').style.width=(G.boss.hp/G.boss.maxHp*100)+'%';
   }
@@ -2172,6 +2381,9 @@ function update(dt){
     const L=choice(TOWN_LAMPS);
     G.fx.push({x:L[0]+rand(-.7,.7),y:L[1]+rand(-.7,.7),vx:rand(-.5,.5),vy:rand(-.5,.5),vz:rand(.3,1),z:rand(.9,1.5),t:rand(.4,1),color:'#e8e3d4',ember:true});
   }
+  // on a hungry floor, the boards snap at your heels
+  if(indictMod('hungry')&&!p.dead&&Math.random()<dt*0.45)
+    addTele(p.x+rand(-1.2,1.2),p.y+rand(-1.2,1.2),1.3,1.0,scaleDmg(8,G.floor)*1.6,'#c34b56',{src:'the hungry floor'});
   G.shake=Math.max(0,(G.shake||0)-dt*1.4);
   G.musT=(G.musT||0)-dt;
   if(G.musT<=0){ G.musT=.5; let agg=0;
@@ -2298,6 +2510,181 @@ function popDecoy(dc){
     const r=rollDamage(p,dc.coef); hitEnemy(e,r.d,r.crit); } }
 }
 function spawnPool(x,y){ G.pools.push({x,y,r:1.3,t:5,dps:scaleDmg(5,G.floor),tick:0}); }
+/* ---------- telegraphed harm: the floor warns you before it bites ---------- */
+function addTele(x,y,r,delay,dmg,color,o){ G.telegraphs.push(Object.assign({shape:'c',x,y,r,t:delay,tMax:delay,dmg,color},o||{})); }
+function addTeleLine(x1,y1,x2,y2,w,delay,dmg,color,o){ G.telegraphs.push(Object.assign({shape:'l',x:x1,y:y1,x2,y2,w,t:delay,tMax:delay,dmg,color},o||{})); }
+function distToSeg(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay; const L2=dx*dx+dy*dy||1e-9;
+  const tt=clamp(((px-ax)*dx+(py-ay)*dy)/L2,0,1);
+  return Math.hypot(px-(ax+dx*tt),py-(ay+dy*tt));
+}
+function updateTelegraphs(dt){
+  const p=G.player;
+  for(const tg of G.telegraphs){
+    if(tg.track&&tg.t>tg.tMax*0.35&&!p.dead){ tg.x=lerp(tg.x,p.x,Math.min(1,dt*4)); tg.y=lerp(tg.y,p.y,Math.min(1,dt*4)); }
+    if(tg.pull&&!p.dead){
+      const d=dist(p.x,p.y,tg.x,tg.y);
+      if(d>1.2&&d<tg.r+2.5){
+        const a=Math.atan2(tg.y-p.y,tg.x-p.x);
+        const nx=p.x+Math.cos(a)*tg.pull*dt, ny=p.y+Math.sin(a)*tg.pull*dt;
+        if(walkable(Math.round(nx),Math.round(ny))){ p.x=nx; p.y=ny; }
+      }
+    }
+    tg.t-=dt;
+    if(tg.t<=0){
+      tg.dead=true; sfx('magic');
+      if(tg.shape==='c'){
+        G.fx.push({ring:[tg.x,tg.y,tg.r],t:.5,color:tg.color});
+        addFx(tg.x,tg.y,tg.color,10,tg.r,2.5);
+        if(!p.dead&&dist(p.x,p.y,tg.x,tg.y)<=tg.r+0.2){
+          hurtPlayer(tg.dmg,tg.src||'the coven');
+          if(tg.stun&&!hasPw(p,'march')){ p.slowT=Math.max(p.slowT,1.2); addText(p.x,p.y,'Staggered','#e8d9a0'); }
+        }
+        if(tg.pool) spawnPool(tg.x,tg.y);
+      } else {
+        G.fx.push({beamGround:[tg.x,tg.y,tg.x2,tg.y2,tg.w],t:.4,color:tg.color});
+        if(!p.dead&&distToSeg(p.x,p.y,tg.x,tg.y,tg.x2,tg.y2)<=tg.w/2+0.2){
+          hurtPlayer(tg.dmg,tg.src||'the coven');
+          if(tg.burn&&!p.dead) addFx(p.x,p.y,'#ff9a4d',6,1.5);
+          if(tg.stun&&!hasPw(p,'march')){ p.slowT=Math.max(p.slowT,1.2); addText(p.x,p.y,'Staggered','#e8d9a0'); }
+        }
+        if(tg.pool) spawnPool((tg.x+tg.x2)/2,(tg.y+tg.y2)/2);
+      }
+      if(tg.onDone) tg.onDone();
+    }
+  }
+  G.telegraphs=G.telegraphs.filter(t=>!t.dead);
+}
+/* ---------- the eight bosses fight like they mean it ---------- */
+const PHASE_LINES=[
+  'stirs her cauldron to a furious boil.',
+  'pounds the gavel — court is now in <b>session</b>.',
+  'rises into the second movement.',
+  'threads a needle with something red.',
+  'remembers what she is.',
+  'cracks the whip over horses that are not there.',
+  'turns the sermon upside down.',
+  'rings the hour of confession.',
+];
+function bossSpot(x,y){
+  const bx=Math.round(x), by=Math.round(y);
+  for(let r=0;r<5;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+    if(Math.max(Math.abs(dx),Math.abs(dy))!==r) continue;
+    if(walkable(bx+dx,by+dy)&&map[by+dy][bx+dx]===T_FLOOR) return [bx+dx,by+dy];
+  }
+  return [bx,by];
+}
+function bossAI(e,dt,tgt,dP){
+  const p=G.player, f=G.floor, idx=e.bossIdx??0;
+  if(e.phase==null){ e.phase=1; e.aiCd=2.2; }
+  // standing mechanics, every frame
+  if(idx===4&&e.candles){
+    const alive=e.candles.filter(k=>!k.dead);
+    if(alive.length){
+      e.hp=Math.min(e.maxHp,e.hp+e.maxHp*0.012*dt);
+      if(Math.random()<dt*3){ const c=choice(alive);
+        G.fx.push({beam:[c.x,c.y,e.x,e.y],t:.2,color:'#f0bd4e'}); }
+    } else if(!e.candlesOut){ e.candlesOut=true; msg('The candles gutter out. <b>She can be hurt in earnest now.</b>','#f0bd4e'); }
+  }
+  if(e.phase===1&&e.hp<e.maxHp*0.5){
+    e.phase=2; e.aiCd=Math.min(e.aiCd,1); e.spd*=1.12;
+    G.fx.push({ring:[e.x,e.y,3],t:.5,color:e.type.color});
+    addFx(e.x,e.y,e.type.color,22,3,3.2);
+    msg('<b style="color:'+e.type.color+'">'+e.name+'</b> '+PHASE_LINES[idx],'#e0a0a8');
+    sfx('boss');
+  }
+  e.aiCd-=dt;
+  if(e.aiCd>0||!e.aggro||p.dead) return;
+  const ph2=e.phase>=2;
+  const D=m=>scaleDmg(m,f)*(e.teleM||2);
+  switch(idx){
+    case 0:{ // the Crone: a mortar of boiling pitch
+      e.casting=0.6; e.aiCd=ph2?3.0:4.4;
+      const n=ph2?5:3;
+      for(let i=0;i<n;i++){
+        const a=rand(0,6.28), r=i===0?0:rand(0.6,2.4);
+        addTele(p.x+Math.cos(a)*r,p.y+Math.sin(a)*r,1.5,0.9+i*0.12,D(8),'#7be3c4',{src:e.name,pool:ph2&&i%2===0});
+      }
+      e.kids=(e.kids||[]).filter(k=>!k.dead);
+      if(ph2&&e.kids.length<2){
+        const [kx,ky]=bossSpot(e.x+randi(-1,1),e.y+randi(-1,1));
+        const kid=addEnemy(TYPE_BY_ID.familiar,kx,ky,f,false);
+        if(kid){ kid.aggro=true; kid.xp=Math.round(kid.xp*0.3); e.kids.push(kid); }
+      }
+      break; }
+    case 1:{ // Hathorne: the Verdict, and a jury that shields him
+      e.kids=(e.kids||[]).filter(k=>!k.dead);
+      e.juryDone=e.juryDone||{};
+      for(const th of [0.66,0.33]){
+        if(e.hp<e.maxHp*th&&!e.juryDone[th]){
+          e.juryDone[th]=true; e.casting=0.8; e.aiCd=2;
+          msg('“The jury will <b>rise</b>.” While they stand, the Magistrate is shielded.','#b59ad1');
+          for(let i=0;i<3;i++){ const [kx,ky]=bossSpot(e.x+randi(-2,2),e.y+randi(-2,2));
+            const kid=addEnemy(TYPE_BY_ID.juror,kx,ky,Math.max(1,f-2),false);
+            if(kid){ kid.aggro=true; kid.xp=Math.round(kid.xp*0.3); e.kids.push(kid); } }
+          return;
+        }
+      }
+      e.casting=0.7; e.aiCd=ph2?2.8:4.2;
+      const a=Math.atan2(p.y-e.y,p.x-e.x);
+      addTeleLine(e.x,e.y,e.x+Math.cos(a)*7,e.y+Math.sin(a)*7,1.6,0.85,D(10),'#b59ad1',{src:e.name,stun:true});
+      break; }
+    case 2:{ // the Choir: crescendos you must step out of
+      e.casting=0.8; e.aiCd=ph2?3.2:4.6;
+      addTele(e.x,e.y,3.4,1.1,D(9),'#e08a8a',{src:e.name});
+      if(ph2) addTele(p.x,p.y,1.8,1.45,D(7),'#e08a8a',{src:e.name});
+      break; }
+    case 3:{ // the Seamstress: red thread across the room
+      if(dP>5&&hasLOS(e.x,e.y,p.x,p.y)){
+        addFx(e.x,e.y,'#e8e3d4',10,2);
+        e.x=p.x+rand(-1.5,1.5); e.y=p.y+rand(-1.5,1.5);
+        if(!walkable(Math.round(e.x),Math.round(e.y))){ e.x=p.x; e.y=p.y+1; }
+        addFx(e.x,e.y,'#e8e3d4',10,2);
+        addText(e.x,e.y,'pulled along the thread','#e8e3d4');
+        e.aiCd=1.2; break;
+      }
+      e.casting=0.8; e.aiCd=ph2?2.8:4.0;
+      const n=ph2?3:2;
+      for(let i=0;i<n;i++){ const a=rand(0,3.14);
+        addTeleLine(e.x-Math.cos(a)*6,e.y-Math.sin(a)*6,e.x+Math.cos(a)*6,e.y+Math.sin(a)*6,1.1,0.9+i*0.15,D(7),'#c34b56',{src:e.name,burn:true}); }
+      break; }
+    case 4:{ // Abigail: moonbeam, sabbat candles, the endless turning
+      if(!e.candles&&e.hp<e.maxHp*0.6){
+        e.candles=[]; e.casting=1; e.aiCd=2.5;
+        msg('Abigail lights the <b style="color:#f0bd4e">sabbat candles</b>. While they burn she mends, and hardly bleeds. <b>Snuff them.</b>','#f0bd4e');
+        for(let i=0;i<3;i++){ const a=i*2.09+0.5;
+          const [kx,ky]=bossSpot(e.x+Math.cos(a)*3,e.y+Math.sin(a)*3);
+          const kid=addEnemy(TYPE_BY_ID.sabbatcandle,kx,ky,f,false,true);
+          if(kid){ kid.aggro=true; kid.hp=kid.maxHp=Math.round(60+f*20); kid.xp=40; e.candles.push(kid); } }
+        return;
+      }
+      e.casting=0.6; e.aiCd=ph2?2.6:3.6;
+      addTele(p.x,p.y,1.7,1.0,D(8),'#f0bd4e',{src:e.name,track:true});
+      if(e.hp<e.maxHp*0.3&&Math.random()<0.5) addTele(e.x,e.y,4.2,1.5,D(10),'#f0bd4e',{src:e.name});
+      break; }
+    case 5:{ // the Coachman: the Ipswich Run
+      if(dP<2.5){ e.aiCd=1.4; break; }
+      e.casting=0.85; e.aiCd=ph2?2.8:4.4;
+      const a=Math.atan2(p.y-e.y,p.x-e.x);
+      const bx=e.x, by=e.y, ex2=e.x+Math.cos(a)*9, ey2=e.y+Math.sin(a)*9;
+      addTeleLine(bx,by,ex2,ey2,1.5,0.85,D(11),'#9fb6c9',{src:e.name,onDone:()=>{
+        if(e.dead) return;
+        e.dashT=0.35; e.dashX=(ex2-e.x)/0.35; e.dashY=(ey2-e.y)/0.35; e.dashHit=false; sfx('shoot');
+      }});
+      break; }
+    case 6:{ // Reverend Carrion: the sermon, inverted
+      e.casting=0.8; e.aiCd=ph2?3.0:4.4;
+      const px2=p.x, py2=p.y, L=ph2?5:3.6;
+      addTeleLine(px2-L,py2,px2+L,py2,1.1,1.0,D(8),'#9fdc8a',{src:e.name,pool:true});
+      addTeleLine(px2,py2-L,px2,py2+L,1.1,1.0,D(8),'#9fdc8a',{src:e.name});
+      break; }
+    case 7:{ // the Confessor: be drawn in, then answer for it
+      e.casting=1.3; e.aiCd=ph2?3.8:5.2;
+      addText(e.x,e.y-1,'“Confess.”','#c89b3c');
+      addTele(e.x,e.y,2.6,1.25,D(12),'#c89b3c',{src:e.name,pull:2.8});
+      break; }
+  }
+}
 function placeFurnishings(rooms,n){
   G.chests=[]; G.breaks=[];
   const p=G.player;
@@ -2367,6 +2754,46 @@ function smashBreak(b){
   if(r<.38) dropGold(3+G.floor*rand(1,2),b.x,b.y);
   else if(r<.48) dropItem(makePotion(Math.random()<.6?'hp':'ap'),b.x,b.y);
   else if(r<.53) dropItem(makeItem(G.floor,null,G.player?G.player.luck:0),b.x,b.y);
+}
+/* ---------- indictments: writs against the Hollows themselves ---------- */
+const INDICT_MODS=[
+  {k:'vamp',    n:'Vampiric Brood', d:'every foe drinks from the wounds it deals', luck:15},
+  {k:'iron',    n:'Iron-Boned',     d:'foes bear +40% vitality', luck:20},
+  {k:'cruel',   n:'Cruel',          d:'foes strike +30% harder', gold:40},
+  {k:'dark',    n:'Benighted',      d:'your lamp reaches half as far', luck:10},
+  {k:'volatile',n:'Volatile Dead',  d:'half the dead burst when they fall', luck:15},
+  {k:'hungry',  n:'The Hungry Floor', d:'the boards themselves snap at you', luck:25},
+];
+function makeIndictment(tier){
+  tier=clamp(tier,1,9);
+  const pool=[...INDICT_MODS], mods=[];
+  const n=tier>=4?3:2;
+  for(let i=0;i<n;i++) mods.push(pool.splice(randi(0,pool.length-1),1)[0].k);
+  return {id:uid++, indict:true, tier, mods, slot:null, affixes:[],
+    rarity:tier>=4?'unique':'magic',
+    name:'Indictment of the Hollows, Tier '+tier};
+}
+function indictMod(k){ return !!(G.indict&&G.indict.mods.includes(k)); }
+function indictLuck(){
+  if(!G.indict) return 0;
+  let v=10+G.indict.tier*4;
+  for(const k of G.indict.mods){ const m=INDICT_MODS.find(x=>x.k===k); if(m&&m.luck) v+=m.luck; }
+  return v;
+}
+function indictGold(){
+  if(!G.indict) return 0;
+  let v=20;
+  for(const k of G.indict.mods){ const m=INDICT_MODS.find(x=>x.k===k); if(m&&m.gold) v+=m.gold; }
+  return v;
+}
+function useIndictment(i){
+  const p=G.player, it=p.bag[i]; if(!it||!it.indict) return;
+  p.bag.splice(i,1); renderInv(); hideTooltip();
+  G.portal=null;
+  G.indictNext={tier:it.tier, mods:it.mods.slice(), lvl:15+it.tier*2, done:false};
+  msg('The writ ignites cold-blue, and the floor <b style="color:#7db1ff">forgets where it was</b>. Slay the warden to be paid. If you fall, the indictment is void.','#7db1ff');
+  sfx('stairs');
+  startFloor(G.indictNext.lvl,'indict');
 }
 /* ---------- the parish notice board ---------- */
 function ensureBounties(){
@@ -2527,7 +2954,7 @@ function questSection(id){
   return h;
 }
 function openShop(id){
-  const p=G.player, npc=NPCS.find(n=>n.id===id); if(!npc) return;
+  const p=G.player, npc=NPCS.find(n=>n.id===id)||G.npcs.find(n=>n.id===id); if(!npc) return;
   for(const pid of ['inv-panel','char-panel','tree-panel','stash-panel','journal-panel']) document.getElementById(pid).style.display='none';
   const panel=document.getElementById('shop-panel'), body=document.getElementById('shop-body');
   document.getElementById('shop-title').innerHTML=npc.n+' <small></small>';
@@ -2579,12 +3006,20 @@ function openShop(id){
       h+='<div class="shop-row"><span class="nm">\uD83D\uDCE6 Mystery Crate (depth '+G.deepest+')<small>\u201CFell off a coven wagon. Could be anything. Probably isn\u2019t.\u201D Better odds than the dungeon floor.</small></span>'
         +'<button data-gamble="1" '+(p.gold<gc?'disabled':'')+'>Gamble \uD83E\uDE99'+gc+'</button></div>';
     }
+    if(p.quests&&(p.quests.q5==='done'||p.quests.q5==='claimed')){
+      h+='<div class="shop-row"><span class="nm">⚖️ Indictment of the Hollows, Tier 1<small>“Filed by the parish against a floor that should not exist. Somebody has to serve it.”</small></span>'
+        +'<button data-writ="1" '+(p.gold<250?'disabled':'')+'>Buy 🪙250</button></div>';
+    }
     h+='<div class="tree-head">Loyal creatures (common stock only)</div>';
     PETS.forEach(d=>{
       h+='<div class="shop-row"><span class="nm">'+d.glyph2+' '+d.n+'<small>'+d.d+'</small></span><button data-pet="'+d.id+'" '+(p.gold<150?'disabled':'')+'>Buy \uD83E\uDE99150</button></div>';
     });
     h+='<div class="shop-note">\u201CThe finer beasts? Those you\u2019ll have to take from the coven\u2019s own hands.\u201D</div>';
     h+=sellSection();
+  } else if(id==='abigail'){
+    h+='<div class="shop-note">She is watching the rope sway. It is just rope now.</div>';
+    h+='<div class="shop-note">“Two hundred years I kept that chair for somebody who would read the whole of it. You kept the appointment. Most people only keep the hangings.”</div>';
+    h+='<div class="shop-note">“Go on, little lamp. The house is only a house. The town is only a town. That was the whole trick of it, in the end — they always were.”</div>';
   } else if(id==='sineater'){
     const ranks=Object.values(p.tree||{}).reduce((a,b)=>a+b,0);
     const skillCost=40*p.level;
@@ -2633,6 +3068,13 @@ function openShop(id){
       if(!addToBag(p,makeConsumable(k))){ msg('Satchel is full.','#9aa39b'); return; }
       p.gold-=cost;
       sfx('pickup'); updateHud(); renderInv(); saveGame(); openShop(id); };
+  });
+  body.querySelectorAll('button[data-writ]').forEach(btn=>{
+    btn.onclick=()=>{ if(p.gold<250) return;
+      if(p.bag.length>=24){ msg('Satchel is full.','#9aa39b'); return; }
+      p.gold-=250; p.bag.push(makeIndictment(1));
+      sfx('pickup'); msg('Quill stamps the writ twice and does not meet your eye.');
+      updateHud(); renderInv(); saveGame(); openShop(id); };
   });
   body.querySelectorAll('button[data-pet]').forEach(btn=>{
     btn.onclick=()=>{ if(p.gold<150) return;
@@ -2710,6 +3152,7 @@ function useConsumable(i){
   const p=G.player, it=p.bag[i]; if(!it||!it.consume) return;
   if(it.consume==='scroll'||it.consume==='rope'){
     if(G.floor===0){ msg('You are already in Salem. The scroll declines to waste itself.','#9aa39b'); return; }
+    if(G.indict){ msg('The indictment seals lesser doors. See it served, or take the stairs and forfeit.','#9aa39b'); return; }
     spendConsumable(p,i); renderInv(); hideTooltip();
     G.portal={floor:G.floor, x:p.x, y:p.y};
     msg('The scroll burns blue. A <b style="color:#7db1ff">portal</b> opens — it will hold until you step back through.');
@@ -2837,6 +3280,30 @@ function render(){
     ctx.strokeStyle='rgba(159,220,138,.25)'; ctx.lineWidth=1;
     ctx.beginPath();ctx.ellipse(ax,ay,pl.r*TW*0.5,pl.r*TH*0.5,0,0,7);ctx.stroke();
   }
+  // telegraphed harm filling in on the boards
+  for(const tg of G.telegraphs){
+    const prog=clamp(1-tg.t/tg.tMax,0,1);
+    const col=tg.color||'#c34b56';
+    if(tg.shape==='c'){
+      const [ax,ay]=isoPos(tg.x,tg.y);
+      const rx=tg.r*TW*0.5, ry=tg.r*TH*0.5;
+      ctx.strokeStyle=col; ctx.globalAlpha=0.55; ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.ellipse(ax,ay,rx,ry,0,0,7);ctx.stroke();
+      ctx.fillStyle=col; ctx.globalAlpha=0.10+prog*0.16;
+      ctx.beginPath();ctx.ellipse(ax,ay,rx*prog,ry*prog,0,0,7);ctx.fill();
+      ctx.globalAlpha=1;
+    } else {
+      const dx=tg.x2-tg.x, dy=tg.y2-tg.y, L=Math.hypot(dx,dy)||1e-9;
+      const px2=-dy/L*tg.w/2, py2=dx/L*tg.w/2;
+      const quad=[[tg.x+px2,tg.y+py2],[tg.x-px2,tg.y-py2],[tg.x2-px2,tg.y2-py2],[tg.x2+px2,tg.y2+py2]].map(c=>isoPos(c[0],c[1]));
+      ctx.beginPath(); ctx.moveTo(quad[0][0],quad[0][1]);
+      for(let i=1;i<4;i++) ctx.lineTo(quad[i][0],quad[i][1]);
+      ctx.closePath();
+      ctx.fillStyle=col; ctx.globalAlpha=0.10+prog*0.16; ctx.fill();
+      ctx.strokeStyle=col; ctx.globalAlpha=0.55; ctx.lineWidth=1.4; ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+  }
   // depth-sorted entities
   ents.push({d:p.x+p.y,draw:()=>drawPlayer(p)});
   for(const c of G.chests) if(seen[Math.round(c.y)]?.[Math.round(c.x)])
@@ -2879,6 +3346,17 @@ function render(){
         ctx.lineTo(c2,d2-16); ctx.stroke();
       }
       ctx.globalAlpha=1; ctx.shadowBlur=0; continue; }
+    if(f.beamGround){
+      const [x1,y1,x2,y2,w]=f.beamGround;
+      const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy)||1e-9;
+      const px2=-dy/L*w/2, py2=dx/L*w/2;
+      const quad=[[x1+px2,y1+py2],[x1-px2,y1-py2],[x2-px2,y2-py2],[x2+px2,y2+py2]].map(c=>isoPos(c[0],c[1]));
+      ctx.beginPath(); ctx.moveTo(quad[0][0],quad[0][1]);
+      for(let i=1;i<4;i++) ctx.lineTo(quad[i][0],quad[i][1]);
+      ctx.closePath();
+      ctx.fillStyle=f.color; ctx.globalAlpha=clamp(f.t*2,0,0.8);
+      ctx.shadowColor=f.color; ctx.shadowBlur=12; ctx.fill();
+      ctx.globalAlpha=1; ctx.shadowBlur=0; continue; }
     if(f.swipe){ const [ax,ay]=isoPos(f.swipe[0],f.swipe[1]);
       const dir=f.swipe[2], reach=f.swipe[3]*TW*0.42;
       const prog=1-(f.t/.24);
@@ -2889,7 +3367,7 @@ function render(){
       ctx.beginPath(); ctx.ellipse(0,0,reach,reach*0.55,0,Math.min(a0,a1),Math.max(a0,a1)); ctx.stroke();
       ctx.globalAlpha=1; ctx.shadowBlur=0; ctx.restore(); continue; }
     if(f.ring){ const [sx,sy]=isoPos(f.ring[0],f.ring[1]);
-      const r=f.ring[2]*(1-(f.t/.5))*TW*0.55+8;
+      const r=Math.max(0.5,f.ring[2]*(1-(f.t/.5))*TW*0.55+8);
       ctx.strokeStyle=f.color; ctx.lineWidth=3; ctx.globalAlpha=f.t*1.6;
       ctx.beginPath(); ctx.ellipse(sx,sy,r,r/2,0,0,7); ctx.stroke(); ctx.globalAlpha=1; continue; }
     const [sx,sy]=isoPos(f.x,f.y);
@@ -3591,6 +4069,18 @@ function drawNpc(n){
     ctx.fillStyle='#b09a84'; ctx.beginPath();ctx.arc(0,-11.4,3,0,7);ctx.fill();
     const g=0.4+0.3*Math.sin(t*3);
     ctx.fillStyle=`rgba(199,139,242,${g.toFixed(3)})`; ctx.fillRect(-1,-12.2,2,2); // something glows where a mouth should be
+  } else if(n.id==='abigail'){ // released, and lingering by choice
+    ctx.globalAlpha=0.8;
+    ctx.fillStyle='#cfc2a0'; ctx.beginPath();
+    ctx.moveTo(-6,0);ctx.lineTo(6,0);ctx.lineTo(3.6,-14);ctx.lineTo(-3.6,-14);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#d8cba4'; ctx.beginPath();ctx.arc(0,-17.6,4.2,0,7);ctx.fill();
+    ctx.fillStyle='#9a8a66';
+    ctx.beginPath();ctx.moveTo(-3.6,-20);ctx.quadraticCurveTo(-7,-12,-5.5,-4);ctx.lineTo(-3.6,-9);ctx.closePath();ctx.fill();
+    const g=0.5+0.4*Math.sin(t*4);
+    ctx.fillStyle='#d9cdb0'; ctx.fillRect(5,-11,1.8,4);
+    ctx.fillStyle=`rgba(240,189,78,${(0.8*g).toFixed(3)})`;
+    ctx.beginPath();ctx.ellipse(5.9,-12.4,1.4,2.2,0,0,7);ctx.fill();
+    ctx.globalAlpha=1;
   } else { // any stranger
     ctx.fillStyle='#2e2a24'; ctx.beginPath();
     ctx.moveTo(-6,0);ctx.lineTo(6,0);ctx.lineTo(5,-16);ctx.lineTo(-5,-16);ctx.closePath();ctx.fill();
@@ -3950,6 +4440,33 @@ function drawEnemy(e){
     ctx.beginPath();ctx.moveTo(-2.4,-6);ctx.lineTo(-4,-9);ctx.stroke();
     ctx.fillStyle='#f0bd4e'; ctx.fillRect(-6.5,-12,1.6,1.6); ctx.fillRect(-4,-13,1.4,1.4); // coins spilling
     eyes(1.8,-7.6,'#ffd76a');
+  } else if(id==='sabbatcandle'){
+    ctx.fillStyle='#15130f'; ctx.beginPath();ctx.ellipse(0,-1,5.5,2.4,0,0,7);ctx.fill();
+    ctx.fillStyle='#1c1a16'; ctx.fillRect(-2.6,-17,5.2,16);
+    ctx.fillStyle='#2c2620'; ctx.fillRect(-3.4,-7,6.8,2.2); ctx.fillRect(-3.4,-12,1.6,5);
+    const cg=0.6+0.4*Math.sin(t*7+e.anim);
+    ctx.fillStyle=`rgba(240,189,78,${cg.toFixed(3)})`;
+    ctx.beginPath();ctx.ellipse(0,-20,2.4,4.4,0,0,7);ctx.fill();
+    ctx.globalCompositeOperation='lighter';
+    const clg=ctx.createRadialGradient(0,-19,2,0,-19,26);
+    clg.addColorStop(0,'rgba(240,189,78,.20)'); clg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=clg; ctx.fillRect(-28,-46,56,56);
+    ctx.globalCompositeOperation='source-over';
+  } else if(id==='revenant'){
+    const rc=(e.revenant&&e.revenant.classId)||'witchfinder';
+    ctx.globalAlpha=0.78;
+    ctx.fillStyle='#3e5560';
+    ctx.beginPath();ctx.moveTo(-7,8);ctx.lineTo(-4,-12);ctx.lineTo(4,-12);ctx.lineTo(7,8);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#54707c'; ctx.beginPath();ctx.arc(0,-16,5,0,7);ctx.fill();
+    ctx.fillStyle='#101418';
+    if(rc==='witchfinder'){ ctx.fillRect(-8,-21,16,2.4); ctx.fillRect(-4.6,-29.4,9.2,8.6); }
+    else if(rc==='aetherist'){ ctx.fillRect(-6.6,-21,13.2,2.2); ctx.fillRect(-4,-31,8,10); }
+    else if(rc==='mesmerist'){ ctx.fillRect(-7,-21,14,2.2); ctx.fillRect(-4.4,-33,8.8,12); }
+    else { ctx.beginPath();ctx.arc(0,-20,6,Math.PI,0);ctx.fill(); ctx.fillRect(-7.5,-20.4,15,1.8); }
+    if(Math.random()<0.15) addFx(e.x,e.y,'#9fb6c9',1,.8);
+    eyes(2.4,-17,'#cfe8f4');
+    ctx.strokeStyle='rgba(159,182,201,.5)'; ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.ellipse(0,9,12,5,0,0,7);ctx.stroke();
   } else if(id==='witch'||id==='covenSummoner'){
     robe(col,s);
     ctx.fillStyle='#15130f';
@@ -4316,6 +4833,15 @@ function skillTip(s){
 }
 function itemTooltipHTML(it,compare){
   let h='<div class="iname nm-'+it.rarity+'">'+it.name+'</div>';
+  if(it.indict){
+    h+='<div class="itype">Writ · tier '+it.tier+' · single use</div>';
+    h+='<div class="base">Opens a corrupted floor of the Hollows (depth-'+(15+it.tier*2)+' strength) with a warden to slay. Richer spoils within.</div>';
+    for(const k of it.mods){ const m=INDICT_MODS.find(x=>x.k===k);
+      if(m) h+='<div class="aff" style="color:#e08a8a">'+m.n+' — '+m.d+'</div>'; }
+    h+='<div class="hint">Click to serve it · if you fall, the writ is void</div>';
+    h+='<div class="flavor">“The parish requires a witness.”</div>';
+    return h;
+  }
   if(it.pet){
     const def=petDef(it);
     h+='<div class="itype">'+(it.rarity==='unique'?'Unique ':it.rarity==='magic'?'Enchanted ':'')+'companion</div>';
@@ -4385,7 +4911,7 @@ function renderInv(){
       d.innerHTML='<span class="ic">'+itemIcon(it)+'</span>'+((it.qty||1)>1?'<span class="qty">'+it.qty+'</span>':'');
       d.onmouseenter=ev=>showTextTooltip(itemTooltipHTML(it,'bag'),ev);
       d.onmouseleave=hideTooltip;
-      d.onclick=()=>{ if(it.consume) useConsumable(i); else equipFromBag(i); };
+      d.onclick=()=>{ if(it.consume) useConsumable(i); else if(it.indict) useIndictment(i); else equipFromBag(i); };
       d.oncontextmenu=ev=>{ev.preventDefault(); // drop on ground
         p.bag.splice(i,1); dropItem(it,p.x,p.y); renderInv(); hideTooltip();};
     }
@@ -4518,7 +5044,7 @@ function buildTitle(){
       document.getElementById('begin-btn').disabled=false; sfx('click'); };
     wrap.appendChild(card);
   }
-  document.getElementById('begin-btn').onclick=()=>{ if(chosenClass) startGame(chosenClass); };
+  document.getElementById('begin-btn').onclick=()=>{ if(chosenClass) startGame(chosenClass,document.getElementById('hc-box').checked); };
 }
 function enterGame(){
   audio(); if(AC&&AC.state==='suspended')AC.resume();
@@ -4530,11 +5056,14 @@ function enterGame(){
   G.state='play';
   buildSkillBar();
 }
-function startGame(classId){
+function startGame(classId,hardcore){
   if(SLOT_SAVES[CUR_SLOT]){ const free=SLOT_SAVES.findIndex(x=>!x); if(free>=0) CUR_SLOT=free; }
   SLOT_SAVES[CUR_SLOT]=null;
   G.player=newPlayer(classId);
+  G.player.hardcore=!!hardcore;
   G.kills=0; G.cache={}; G.deepest=1; G.shopStock=null; map=null; G.portal=null;
+  G.endingOffered=false; G.choiceOpen=false; G.endingBoss=null; G.indict=null; G.hardcoreDeath=false;
+  document.getElementById('ending-screen').style.display='none';
   enterGame();
   startFloor(0);
   const [sx,sy]=worldToIso(G.player.x,G.player.y); G.cam.x=sx; G.cam.y=sy;
@@ -4555,11 +5084,14 @@ function continueGame(s){
   for(const k in p.quests) if(p.quests[k]===true) p.quests[k]='claimed';
   p.ash=s.ash||0; p.bossFirsts=s.bossFirsts||{};
   p.pages=s.pages||{}; p.bounties=s.bounties||null;
+  p.ending=s.ending||null; p.hardcore=!!s.hardcore;
   p.bag=(s.bag||[]).map(reviveItem).filter(Boolean);
   uid=Math.max(uid,(s.uid||0)+1);
   recalc(p); p.hp=p.maxHp; p.ap=p.maxAp;
   G.player=p; G.kills=s.kills||0;
   G.cache={}; G.deepest=s.deepest||s.floor||1; G.shopStock=null; map=null; G.portal=s.portal||null;
+  G.endingOffered=false; G.choiceOpen=false; G.endingBoss=null; G.indict=null; G.hardcoreDeath=false;
+  document.getElementById('ending-screen').style.display='none';
   enterGame();
   startFloor(s.floor||1);
   const [sx,sy]=worldToIso(p.x,p.y); G.cam.x=sx; G.cam.y=sy;
@@ -4587,9 +5119,9 @@ function renderSlots(){
     const row=document.createElement('div'); row.className='slot-row';
     const main=document.createElement('button'); main.className='main';
     if(sv){
-      main.innerHTML='Continue \u2014 '+CLASSES[sv.classId].name.replace('The ','')+' \u00B7 Lv '+sv.level
+      main.innerHTML='Continue \u2014 '+(sv.hardcore?'\u26B0\uFE0F ':'')+CLASSES[sv.classId].name.replace('The ','')+' \u00B7 Lv '+sv.level
         +'<small>'+(sv.floor===0?'Salem Village':'Depth '+sv.floor)+' \u00B7 \uD83E\uDE99'+(sv.gold||0)
-        +' \u00B7 deepest '+(sv.deepest||sv.floor)+'</small>';
+        +' \u00B7 deepest '+(sv.deepest||sv.floor)+(sv.hardcore?' \u00B7 hardcore':'')+'</small>';
       main.onclick=()=>{ CUR_SLOT=i; continueGame(sv); };
       const del=document.createElement('button'); del.className='del'; del.textContent='\u2715';
       del.title='Abandon this investigator';
@@ -4610,12 +5142,32 @@ setInterval(()=>{ if(G.state==='play'&&G.player&&!G.player.dead) saveGame(); },1
 window.addEventListener('pagehide',()=>saveGame());
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') saveGame(); });
 document.getElementById('resurrect-btn').onclick=()=>{
+  document.getElementById('death-screen').style.display='none';
+  if(G.hardcoreDeath){
+    G.hardcoreDeath=false; G.player=null; G.indict=null;
+    for(const id of ['inv-panel','char-panel','tree-panel','shop-panel','stash-panel','journal-panel']) document.getElementById(id).style.display='none';
+    document.getElementById('hud').style.display='none';
+    document.getElementById('topline').style.display='none';
+    document.getElementById('mobile-menu').style.display='none';
+    document.getElementById('bossbar').style.display='none';
+    G.state='title';
+    renderSlots();
+    Music.setMode('town');
+    document.getElementById('title-screen').style.display='flex';
+    return;
+  }
   const p=G.player;
   p.dead=false; p.hp=p.maxHp; p.ap=p.maxAp;
-  document.getElementById('death-screen').style.display='none';
-  startFloor(G.floor); updateHud();
+  if(G.indict){
+    G.indict=null;
+    msg('You wake in Salem with the taste of ash. The indictment is <b style="color:var(--blood)">void</b>.','#e08a8a');
+    startFloor(0);
+  } else startFloor(G.floor);
+  updateHud();
 };
 
+document.getElementById('ending-spare').onclick=()=>resolveFinal(true);
+document.getElementById('ending-end').onclick=()=>resolveFinal(false);
 document.getElementById('esc-resume').onclick=()=>{ document.getElementById('esc-menu').style.display='none'; };
 document.getElementById('esc-music').onclick=()=>toggleMusic();
 document.getElementById('esc-quit').onclick=async()=>{
@@ -4757,7 +5309,7 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 buildTitle();
-initContinue(); loadStash();
+initContinue(); loadStash(); loadBones();
 requestAnimationFrame(loop);
 </script>
 </body>
