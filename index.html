@@ -515,7 +515,7 @@ function saveBones(){ Store.set('gng-bones',BONES); }
 function recordBones(){
   const p=G.player; if(!p) return;
   const floor=Math.max(1,Math.min(G.floor,LAST_FLOOR+6));
-  const gear=SLOTS.map(s=>p.equip[s]).filter(Boolean)
+  const gear=WORN.map(s=>p.equip[s]).filter(Boolean)
     .sort((a,b)=>sellValue(b)-sellValue(a)).slice(0,3).map(stripItem);
   BONES=BONES.filter(b=>b.floor!==floor); // one ghost per floor
   BONES.unshift({classId:p.classId, level:p.level, floor, gear});
@@ -542,7 +542,7 @@ function snapshot(){
   return {v:2, uid, classId:p.classId, level:p.level, xp:p.xp, xpNext:p.xpNext,
     statPts:p.statPts, skillPts:p.skillPts||0, gold:p.gold, stats:p.stats, tree:p.tree||{},
     potH:p.potH, potA:p.potA, floor:G.floor, kills:G.kills,
-    equip:Object.fromEntries(SLOTS.map(s=>[s,stripItem(p.equip[s])])),
+    equip:Object.fromEntries(WORN.map(s=>[s,stripItem(p.equip[s])])),
     pet:stripItem(p.equip.pet), quests:p.quests||{}, deepest:G.deepest||G.floor, portal:G.portal||null,
     ash:p.ash||0, bossFirsts:p.bossFirsts||{}, pages:p.pages||{}, bounties:p.bounties||null,
     ending:p.ending||null, hardcore:!!p.hardcore,
@@ -878,7 +878,8 @@ function treeVal(p,k){
 
 /* ---------- loot system ---------- */
 const SLOTS=['weapon','armor','hat','gloves','boots','ring','amulet'];
-const SLOT_ICONS={weapon:'\uD83D\uDDE1\uFE0F',armor:'\uD83E\uDDE5',hat:'\uD83C\uDFA9',gloves:'\uD83E\uDDE4',boots:'\uD83E\uDD7E',ring:'\uD83D\uDC8D',amulet:'\uD83E\uDDFF',potionH:'\uD83E\uDED9',potionA:'\uD83E\uDDEA',pet:'\uD83D\uDC3E'};
+const WORN=['weapon','armor','hat','gloves','boots','ring','ring2','amulet']; // what a body can carry: two ring fingers
+const SLOT_ICONS={weapon:'\uD83D\uDDE1\uFE0F',armor:'\uD83E\uDDE5',hat:'\uD83C\uDFA9',gloves:'\uD83E\uDDE4',boots:'\uD83E\uDD7E',ring:'\uD83D\uDC8D',ring2:'\uD83D\uDC8D',amulet:'\uD83E\uDDFF',potionH:'\uD83E\uDED9',potionA:'\uD83E\uDDEA',pet:'\uD83D\uDC3E'};
 const BASES={
   weapon:[
     {n:'Constable\u2019s Cudgel',lv:1},{n:'Surgeon\u2019s Knife',lv:1},{n:'Mesmer\u2019s Cane',lv:1},{n:'Cavalry Sabre',lv:3},
@@ -1455,7 +1456,7 @@ function newPlayer(classId){
     stats:{...c.base}, tree:{}, skillPts:0,
     hp:0, ap:0, baseSpeed:3.4,
     attackT:0, castT:0, cds:{}, buffs:{},
-    equip:{weapon:null,armor:null,hat:null,gloves:null,boots:null,ring:null,amulet:null,pet:null},
+    equip:{weapon:null,armor:null,hat:null,gloves:null,boots:null,ring:null,ring2:null,amulet:null,pet:null},
     bag:[makeConsumable('scroll')], potH:2, potA:1, potCdQ:0, potCdE:0,
     quests:{}, pages:{}, bounties:null, slowT:0,
     anim:0, dead:false, hitFlash:0,
@@ -1470,7 +1471,7 @@ function newPlayer(classId){
 }
 function sumAffix(p,k){
   let v=0;
-  for(const s of SLOTS){ const it=p.equip[s]; if(!it) continue;
+  for(const s of WORN){ const it=p.equip[s]; if(!it) continue;
     for(const a of it.affixes) if(a.k===k) v+=a.v; }
   return v;
 }
@@ -1515,7 +1516,7 @@ function recalc(p){
   // set pieces in concert
   p.setHexP=0; p.costMul=1; p.watchSet=false;
   const setCount={};
-  for(const sl of SLOTS){ const it2=p.equip[sl]; if(it2&&it2.set) setCount[it2.set]=(setCount[it2.set]||0)+1; }
+  for(const sl of WORN){ const it2=p.equip[sl]; if(it2&&it2.set) setCount[it2.set]=(setCount[it2.set]||0)+1; }
   for(const sd of SETS){
     const c2=setCount[sd.id]||0;
     if(c2>=2){
@@ -2328,6 +2329,20 @@ function update(dt){
     if(x<0||y<0||x>=MW||y>=MH) continue;
     const d=Math.hypot(dx,dy);
     if(d<LR&&hasLOS(p.x,p.y,x,y)){ seen[y][x]=true; lit[y][x]=Math.max(lit[y][x],clamp(1-d/LR,0,1)); }
+  }
+  // walls borrow light from the lit floor beside them (LOS rays end inside walls, so they never pass their own check)
+  for(let dy=-LR;dy<=LR;dy++)for(let dx=-LR;dx<=LR;dx++){
+    const x=ptx+dx,y=pty+dy;
+    if(x<0||y<0||x>=MW||y>=MH) continue;
+    if(map[y][x]!==T_WALL) continue;
+    let best=0;
+    for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+      if(!ox&&!oy) continue;
+      const nx=x+ox, ny=y+oy;
+      if(nx<0||ny<0||nx>=MW||ny>=MH) continue;
+      if(map[ny][nx]!==T_WALL&&lit[ny][nx]>best) best=lit[ny][nx];
+    }
+    if(best>0.04){ seen[y][x]=true; lit[y][x]=Math.max(lit[y][x],best*0.92); }
   }
   for(let y=0;y<MH;y++)for(let x=0;x<MW;x++) if(lit[y][x]>0) lit[y][x]=Math.max(0,lit[y][x]-dt*1.6);
   }
@@ -5267,7 +5282,7 @@ function itemTooltipHTML(it,compare){
   if(it.set){
     const sd=SETS.find(x=>x.id===it.set);
     if(sd){
-      const cnt=G.player?SLOTS.filter(sl=>G.player.equip[sl]&&G.player.equip[sl].set===it.set).length:0;
+      const cnt=G.player?WORN.filter(sl=>G.player.equip[sl]&&G.player.equip[sl].set===it.set).length:0;
       h+='<div class="itype" style="color:#7ddf8a;margin-top:.3rem">'+sd.n+' ('+cnt+' of '+sd.pieces.length+' worn)</div>';
       h+='<div style="color:'+(cnt>=2?'#7ddf8a':'#5d655e')+';font-size:.78rem">(2) '+sd.b2+'</div>';
       h+='<div style="color:'+(cnt>=3?'#7ddf8a':'#5d655e')+';font-size:.78rem">(3) '+sd.b3+'</div>';
@@ -5304,12 +5319,13 @@ function hideTooltip(){ tipEl.style.display='none'; }
 function renderInv(){
   const p=G.player;
   const eg=document.getElementById('equip-grid'); eg.innerHTML='';
-  const order=['hat','amulet','ring','weapon','armor','pet'];
+  const order=['hat','amulet','pet','weapon','armor','gloves','boots','ring','ring2'];
+  const slotLabel={ring2:'ring'};
   for(const slot of order){
     const it=p.equip[slot];
     const d=document.createElement('div');
     d.className='eq-slot'+(it?' filled r-'+it.rarity:'');
-    d.innerHTML=it?'<span class="ic">'+itemIcon(it)+'</span>':'<span class="ic" style="opacity:.25">'+SLOT_ICONS[slot]+'</span>'+slot;
+    d.innerHTML=it?'<span class="ic">'+itemIcon(it)+'</span>':'<span class="ic" style="opacity:.25">'+SLOT_ICONS[slot]+'</span>'+(slotLabel[slot]||slot);
     if(it){
       d.onmouseenter=ev=>showTextTooltip(itemTooltipHTML(it,'equip'),ev);
       d.onmouseleave=hideTooltip;
@@ -5338,11 +5354,13 @@ function renderInv(){
 }
 function equipFromBag(i){
   const p=G.player, it=p.bag[i]; if(!it||!it.slot) return;
-  const old=p.equip[it.slot];
+  let slot=it.slot;
+  if(slot==='ring'&&p.equip.ring&&!p.equip.ring2) slot='ring2'; // a second finger is free
+  const old=p.equip[slot];
   p.bag.splice(i,1);
-  p.equip[it.slot]=it;
+  p.equip[slot]=it;
   if(old) p.bag.push(old);
-  if(it.slot==='pet') syncPet();
+  if(slot==='pet') syncPet();
   recalc(p); renderInv(); renderChar(); hideTooltip(); sfx('pickup'); saveGame();
   msg((it.slot==='pet'?'Your new companion pads after you: ':'Equipped ')+'<b class="nm-'+it.rarity+'">'+it.name+'</b>');
 }
@@ -5495,7 +5513,7 @@ function continueGame(s){
   p.statPts=s.statPts||0; p.skillPts=s.skillPts||0; p.gold=s.gold||0;
   p.stats={...p.stats,...(s.stats||{})}; p.tree=s.tree||{};
   p.potH=s.potH??2; p.potA=s.potA??1;
-  for(const sl of SLOTS) p.equip[sl]=reviveItem(s.equip?s.equip[sl]:null);
+  for(const sl of WORN) p.equip[sl]=reviveItem(s.equip?s.equip[sl]:null);
   p.equip.pet=reviveItem(s.pet||null);
   p.quests=s.quests||{};
   for(const k in p.quests) if(p.quests[k]===true) p.quests[k]='claimed';
