@@ -56,6 +56,44 @@ Touch is supported — tap to move and fight, use the corner buttons for panels.
 
 Each class has a six-branch Grimoire skill tree and its own draw of the loot pool.
 
+## Bosses that fight like they mean it
+
+Every boss telegraphs its harm on the floorboards — circles and lines that
+fill in, then bite — has a phase change at half health, and a signature
+mechanic: the Crone's cauldron mortar, Hathorne's Verdict slam behind a jury
+that shields him until it falls, the Choir's crescendo rings you must step
+out of, the Seamstress's red threads (she travels along them), Abigail's
+tracking moonbeam and sabbat candles that mend her until snuffed, the
+Coachman's full-gallop Ipswich Run, Carrion's inverted-cross sermon, and the
+Clockwork Confessor, who drags you in to confess.
+
+## Two endings
+
+One page of the **Blackwood Papers** is lost on each story floor. Find all
+fifteen and the killing blow on the final boss never lands — she kneels, and
+you choose what 1692 is owed: **take the rope from her neck, or light the
+pyre.** Each choice has its own epilogue and its own exclusive relic, and one
+of them leaves a quiet woman standing by the gallows in town afterward,
+selling hexstones pressed from her own ash. Skip the pages and you get the
+plain ending — and a hint about what you missed.
+
+## After the story: Indictments
+
+Bosses from depth 9 drop **Indictments of the Hollows** — tiered writs that
+open one-shot corrupted floors with rolled modifiers (*Vampiric Brood,
+Iron-Boned, Cruel, Benighted, Volatile Dead, The Hungry Floor*), a guaranteed
+warden, a guaranteed unique, richer fortune throughout, and a 60% chance of a
+deeper writ. If you fall, the writ is void. Quill sells tier-1 writs once the
+coven is broken.
+
+## Hardcore, and what it leaves behind
+
+Tick **⚰️ Hardcore** at character creation and death is the rope — no
+rising. But the fallen are recorded: a hardcore investigator who dies leaves
+a **Revenant** haunting the floor where they fell, wearing their old gear.
+Any later character who strikes it down releases up to two of the items it
+carried.
+
 ## What's in the mansion
 
 - **21 named floors** in seven visual bands — oak parlors, cold halls, brick
@@ -69,11 +107,19 @@ Each class has a six-branch Grimoire skill tree and its own draw of the loot poo
   marionettes, clockwork footmen, charging headless coachmen, and the coven imp
   who flees with its sack of loot — kill it before it vanishes.
 - **Loot**: seven equipment slots (weapon, coat, hat, gloves, boots, ring,
-  amulet) plus a companion slot; magic and unique rarities; 15 unique relics
-  with build-changing powers; durability, repair, and witch-ash crafting at the
-  blacksmith.
+  amulet) plus a companion slot; magic, **set** (green) and unique rarities;
+  17 unique relics with build-changing powers; three 3-piece sets with
+  escalating bonuses (the Hangman's Trade, the Gravewatch, the Parlor Circle);
+  durability, repair, and witch-ash crafting at the blacksmith.
+- **Hexstones**: socketable gems (Wolf's Fang, Cinder Pearl, Miser's Eye,
+  Witch-Knot, in three tiers) whose effect depends on whether the smith sets
+  them in a weapon, coat, or hat. Weapons and armor roll up to two sockets.
 - **Iron-bound coffers** (some gilded, some bait for an ambush), smashable
   crates, casks, and funerary urns.
+- **Dungeon events**: séance tables that demand sitters in waves and pay in
+  relics; caged townsfolk who fight beside you when freed (usually); cursed
+  altars that bless or collect; and warded vaults whose Key-Warden walks the
+  same floor.
 - **The Blackwood Papers** — a 15-page journal, one page lost on each story
   floor, telling what actually happened in that house. Press `J`.
 - **Salem Village**: five keepers (potions, smithing, lodging, curiosities, and

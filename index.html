@@ -174,7 +174,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);
 #tooltip .base{color:var(--common)}
 #tooltip .flavor{margin-top:.4rem;font-style:italic;color:var(--brass-dim);font-size:.74rem}
 #tooltip .hint{margin-top:.35rem;font-size:.66rem;color:#697066;letter-spacing:.08em}
-.nm-common{color:var(--common)} .nm-magic{color:var(--rare-blue)} .nm-unique{color:var(--uniq-gold)}
+.nm-common{color:var(--common)} .nm-magic{color:var(--rare-blue)} .nm-unique{color:var(--uniq-gold)} .nm-set{color:#7ddf8a}
+.r-set{box-shadow:inset 0 0 0 1px #7ddf8a, inset 0 0 12px rgba(125,223,138,.25)}
+#stash-panel .cell.r-set{border-color:#3d8a4a}
+.shop-row select{font-family:inherit;background:#15130e;border:1px solid var(--brass-dim);color:var(--parchment);font-size:.72rem;padding:.2rem;max-width:130px}
 
 /* ---------- death ---------- */
 #death-screen{position:absolute;inset:0;z-index:55;display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem;
@@ -976,6 +979,103 @@ const UNIQUES=[
    pw:'midas', pwd:'The slain spill 40% more shillings at your feet.'},
 ];
 
+/* ---------- set pieces: garments that remember each other ---------- */
+const SETS=[
+  {id:'hangman', n:'The Hangman’s Trade',
+   b2:'+15% damage', b3:'+25% damage to stunned, slowed, burning or terrified foes',
+   pieces:[
+     {slot:'weapon', base:'Headsman’s Falchion', n:'The Drop', fx:[['dmg',1.3],['as',1.15]]},
+     {slot:'gloves', base:'Undertaker’s Gloves', n:'The Knotting Hands', fx:[['crit',1.3],['might',1.15]]},
+     {slot:'amulet', base:'Iron Key Pendant', n:'The Last Key', fx:[['hp',1.2],['leech',1.15]]},
+   ]},
+  {id:'gravewatch', n:'The Gravewatch',
+   b2:'+25 armor and +2 life per second', b3:'Falling below 40% life rouses the Watch: frenzy for 4s (once per 20s)',
+   pieces:[
+     {slot:'armor', base:'Constable’s Brigandine', n:'The Long Vigil', fx:[['armor',1.4],['hp',1.2]]},
+     {slot:'hat', base:'Felt Bowler', n:'The Watchman’s Brim', fx:[['armor',1.25],['regen',1.2]]},
+     {slot:'boots', base:'Hobnail Boots', n:'The Rounds', fx:[['ms',1.25],['hp',1.15]]},
+   ]},
+  {id:'parlor', n:'The Parlor Circle',
+   b2:'+25% aether and +1.5 aether per second', b3:'Skills cost 20% less aether',
+   pieces:[
+     {slot:'ring', base:'Jet Signet', n:'The Medium’s Band', fx:[['ap',1.3],['intellect',1.2]]},
+     {slot:'amulet', base:'Hag-Stone on Twine', n:'The Listening Stone', fx:[['apkill',1.4],['ap',1.2]]},
+     {slot:'hat', base:'Stovepipe Topper', n:'The Séance Crown', fx:[['cdr',1.25],['intellect',1.2]]},
+   ]},
+];
+function makeSetItem(ilvl){
+  const sd=choice(SETS), piece=choice(sd.pieces);
+  const it={id:uid++, slot:piece.slot, ilvl, rarity:'set', set:sd.id, baseName:piece.base, name:piece.n,
+    ...baseStatsFor(piece.slot,ilvl), affixes:[]};
+  if(it.dmgLo){ it.dmgLo=Math.round(it.dmgLo*1.15); it.dmgHi=Math.round(it.dmgHi*1.15); }
+  if(it.armorBase) it.armorBase=Math.round(it.armorBase*1.2);
+  for(const [k,m] of piece.fx){
+    const a=AFFIXES.find(x=>x.k===k);
+    it.affixes.push({k,v:Math.max(1,Math.round(a.v(ilvl)*m)),t:a.t,def:a});
+  }
+  return addSockets(addDurability(it));
+}
+/* ---------- hexstones: witch ash pressed until it remembers being a jewel ---------- */
+const GEMS={
+  fang:{n:'Wolf’s Fang', color:'#e06a6a'},
+  cinder:{n:'Cinder Pearl', color:'#ff9a4d'},
+  miser:{n:'Miser’s Eye', color:'#f0bd4e'},
+  knot:{n:'Witch-Knot', color:'#c78bf2'},
+};
+const GEM_TIERS=['Chipped','Polished','Perfect'];
+function gemEffect(g,t,slot){
+  const i=clamp(t,1,3)-1;
+  switch(g){
+    case 'fang':   return slot==='weapon'?{dmg:[3,7,14][i]}:slot==='armor'?{thorns:[6,14,28][i]}:{crit:[3,6,10][i]};
+    case 'cinder': return slot==='weapon'?{burn:[15,25,40][i]}:slot==='armor'?{hp:[15,35,70][i]}:{ap:[10,22,45][i]};
+    case 'miser':  return {goldf:[8,16,28][i],luck:[4,8,14][i]};
+    case 'knot':   return slot==='weapon'?{pct:[8,15,25][i]}:slot==='armor'?{armor:[6,14,28][i]}:{cdr:[4,8,14][i]};
+  }
+  return {};
+}
+function gemText(g,t,slot){
+  const e=gemEffect(g,t,slot), parts=[];
+  if(e.dmg) parts.push('+'+e.dmg+' damage');
+  if(e.thorns) parts.push('returns '+e.thorns+' damage');
+  if(e.crit) parts.push('+'+e.crit+'% critical chance');
+  if(e.burn) parts.push(e.burn+'% of each hit burns over 2s');
+  if(e.hp) parts.push('+'+e.hp+' life');
+  if(e.ap) parts.push('+'+e.ap+' aether');
+  if(e.goldf) parts.push('+'+e.goldf+'% shillings');
+  if(e.luck) parts.push('+'+e.luck+'% finer loot');
+  if(e.pct) parts.push('+'+e.pct+'% damage');
+  if(e.armor) parts.push('+'+e.armor+' armor');
+  if(e.cdr) parts.push('-'+e.cdr+'% cooldowns');
+  return parts.join(', ');
+}
+function makeGem(tier){
+  tier=clamp(tier,1,3);
+  const g=choice(Object.keys(GEMS));
+  return {id:uid++, gem:g, tier, slot:null, affixes:[],
+    rarity:tier===3?'unique':tier===2?'magic':'common',
+    name:GEM_TIERS[tier-1]+' '+GEMS[g].n};
+}
+function addSockets(it){
+  if(['weapon','armor','hat'].includes(it.slot)){
+    const r=Math.random();
+    it.sk=r<0.10?2:r<0.30?1:0;
+    if((it.rarity==='unique'||it.rarity==='set')&&Math.random()<0.5) it.sk=Math.max(it.sk,1);
+    it.gems=it.gems||[];
+  }
+  return it;
+}
+function gemVals(p){
+  const v={dmg:0,thorns:0,crit:0,burn:0,hp:0,ap:0,goldf:0,luck:0,pct:0,armor:0,cdr:0};
+  for(const s of ['weapon','armor','hat']){
+    const it=p.equip[s]; if(!it||!it.gems) continue;
+    for(const gm of it.gems){
+      const eff=gemEffect(gm.gem,gm.tier,s);
+      for(const k in eff) v[k]+=eff[k];
+    }
+  }
+  return v;
+}
+
 /* ---------- pets, consumables, durability ---------- */
 const PETS=[
   {id:'grim',  n:'Church Grim',   role:'attack', glyph:'\uD83D\uDC15\u200D\uD83E\uDDBA', glyph2:'\uD83D\uDC15', color:'#3a3f4a',
@@ -1016,7 +1116,8 @@ function sellValue(it){
   if(it.potion) return 4;
   if(it.consume) return it.consume==='scroll'?15:it.consume==='bomb'?16:22;
   if(it.indict) return 40*it.tier;
-  const rm=it.rarity==='unique'?9:it.rarity==='magic'?3:1;
+  if(it.gem) return 25*it.tier;
+  const rm=it.rarity==='unique'?9:it.rarity==='set'?6:it.rarity==='magic'?3:1;
   if(it.pet) return Math.round(60*PET_MULT[it.rarity]);
   return Math.max(2,Math.round(it.ilvl*5*rm+it.affixes.length*it.ilvl*2));
 }
@@ -1050,13 +1151,16 @@ function pickBase(slot, ilvl){
 function rollRarity(luckPct){
   let r=Math.random()*100 - (luckPct||0)*0.4;
   if(r<0.5) return 'unique';
+  if(r<2.3) return 'set';
   if(r<24) return 'magic';
   return 'common';
 }
 function makeItem(ilvl, forceRarity, luckPct){
   ilvl=Math.max(1,Math.round(ilvl));
-  const rarity=forceRarity||rollRarity(luckPct);
+  let rarity=forceRarity||rollRarity(luckPct);
+  if(rarity==='set'&&ilvl<5) rarity='magic';
   if(rarity==='unique') return makeUnique(ilvl);
+  if(rarity==='set') return makeSetItem(ilvl);
   const slot=choice(SLOTS);
   const base=pickBase(slot,ilvl);
   const it={id:uid++, slot, ilvl, rarity, baseName:base.n, ...baseStatsFor(slot,ilvl), affixes:[]};
@@ -1073,7 +1177,7 @@ function makeItem(ilvl, forceRarity, luckPct){
     const pre=picked[0], suf=picked[1];
     it.name=(pre?pre.pre+' ':'')+base.n+(suf?' '+suf.suf:'');
   } else it.name=base.n;
-  return addDurability(it);
+  return addSockets(addDurability(it));
 }
 function makeUnique(ilvl){
   const u=choice(UNIQUES);
@@ -1085,7 +1189,7 @@ function makeUnique(ilvl){
     const a=AFFIXES.find(x=>x.k===k);
     it.affixes.push({k, v:Math.max(1,Math.round(a.v(ilvl)*mult)), t:a.t, def:a});
   }
-  return addDurability(it);
+  return addSockets(addDurability(it));
 }
 function hasPw(p,k){
   for(const sl in p.equip){ const it=p.equip[sl]; if(it&&it.pw===k) return true; }
@@ -1098,6 +1202,7 @@ function itemIcon(it){
   if(it.pet) return petDef(it).glyph2;
   if(it.consume) return it.consume==='scroll'?'\uD83D\uDCDC':it.consume==='bomb'?'\uD83E\uDDE8':'\uD83E\uDDF4';
   if(it.indict) return '\u2696\uFE0F';
+  if(it.gem) return '\uD83D\uDCA0';
   return SLOT_ICONS[it.slot];
 }
 
@@ -1374,16 +1479,17 @@ function recalc(p){
   for(const k of ['might','finesse','intellect','vitality']) s[k]=p.stats[k]+sumAffix(p,k);
   p.eff=s;
   const dmul=it=>it&&it.maxDur!=null&&it.dur<=0?0.5:1;
-  p.maxHp=Math.round(38 + s.vitality*8 + (p.level-1)*p.c.hpPer + sumAffix(p,'hp'));
-  p.maxAp=Math.round(18 + s.intellect*4 + (p.level-1)*p.c.apPer + sumAffix(p,'ap'));
+  const gv=gemVals(p);
+  p.maxHp=Math.round(38 + s.vitality*8 + (p.level-1)*p.c.hpPer + sumAffix(p,'hp') + gv.hp);
+  p.maxAp=Math.round(18 + s.intellect*4 + (p.level-1)*p.c.apPer + sumAffix(p,'ap') + gv.ap);
   p.armor=(p.equip.armor?.armorBase||0)*dmul(p.equip.armor)+(p.equip.hat?.armorBase||0)*dmul(p.equip.hat)
     +(p.equip.gloves?.armorBase||0)*dmul(p.equip.gloves)+(p.equip.boots?.armorBase||0)*dmul(p.equip.boots)
-    +sumAffix(p,'armor')+Math.floor(s.might/3);
+    +sumAffix(p,'armor')+gv.armor+Math.floor(s.might/3);
   const w=p.equip.weapon;
-  p.dmgLo=(w?w.dmgLo*dmul(w):1)+sumAffix(p,'dmg');
-  p.dmgHi=(w?w.dmgHi*dmul(w):3)+sumAffix(p,'dmg');
-  p.dmgMult=(1 + s[p.c.primary]*0.045) * (1+sumAffix(p,'pct')/100);
-  p.critCh=5 + s.finesse*0.45 + sumAffix(p,'crit');
+  p.dmgLo=(w?w.dmgLo*dmul(w):1)+sumAffix(p,'dmg')+gv.dmg;
+  p.dmgHi=(w?w.dmgHi*dmul(w):3)+sumAffix(p,'dmg')+gv.dmg;
+  p.dmgMult=(1 + s[p.c.primary]*0.045) * (1+(sumAffix(p,'pct')+gv.pct)/100);
+  p.critCh=5 + s.finesse*0.45 + sumAffix(p,'crit') + gv.crit;
   p.atkSpd=1.25*(1+(sumAffix(p,'as')+s.finesse*0.6)/100);
   p.speed=p.baseSpeed*(1+sumAffix(p,'ms')/100);
   p.leech=sumAffix(p,'leech');
@@ -1400,11 +1506,29 @@ function recalc(p){
   p.speed*=1+tv('msP')/100;
   p.leech+=tv('leech');
   p.apRegen+=tv('apReg');
-  p.luck+=tv('luck');
-  p.cdr=Math.min(40,sumAffix(p,'cdr'));
-  p.goldF=sumAffix(p,'goldf')+(hasPw(p,'midas')?40:0);
+  p.luck+=tv('luck')+gv.luck;
+  p.cdr=Math.min(40,sumAffix(p,'cdr')+gv.cdr);
+  p.goldF=sumAffix(p,'goldf')+gv.goldf+(hasPw(p,'midas')?40:0);
   p.apKill=sumAffix(p,'apkill')+tv('apKill');
-  p.thorns=sumAffix(p,'thorns');
+  p.thorns=sumAffix(p,'thorns')+gv.thorns;
+  p.gemBurn=gv.burn;
+  // set pieces in concert
+  p.setHexP=0; p.costMul=1; p.watchSet=false;
+  const setCount={};
+  for(const sl of SLOTS){ const it2=p.equip[sl]; if(it2&&it2.set) setCount[it2.set]=(setCount[it2.set]||0)+1; }
+  for(const sd of SETS){
+    const c2=setCount[sd.id]||0;
+    if(c2>=2){
+      if(sd.id==='hangman') p.dmgMult*=1.15;
+      else if(sd.id==='gravewatch'){ p.armor+=25; p.regen+=2; }
+      else if(sd.id==='parlor'){ p.maxAp=Math.round(p.maxAp*1.25); p.apRegen+=1.5; }
+    }
+    if(c2>=3){
+      if(sd.id==='hangman') p.setHexP=25;
+      else if(sd.id==='gravewatch') p.watchSet=true;
+      else if(sd.id==='parlor') p.costMul=0.8;
+    }
+  }
   p.hp=Math.min(p.hp,p.maxHp); p.ap=Math.min(p.ap,p.maxAp);
 }
 /* crowd-control duration multiplier — the Showman's Topper lengthens every grip */
@@ -1584,6 +1708,7 @@ function hitEnemy(e,dmg,crit,burn){
   }
   if(treeVal(p,'execP')>0&&(e.stun>0||e.burn>0)) dmg*=1+treeVal(p,'execP')/100;
   if(treeVal(p,'hexP')>0&&(e.slow>0||e.fear>0||e.stun>0)) dmg*=1+treeVal(p,'hexP')/100;
+  if(p.setHexP>0&&(e.slow>0||e.fear>0||e.stun>0||e.burn>0)) dmg*=1+p.setHexP/100;
   e.hp-=dmg; e.hitFlash=.12; e.aggro=true;
   addText(e.x,e.y,fmt(dmg)+(crit?'!':''),crit?'#ffd76a':'#f2e6c8',crit);
   addFx(e.x,e.y,'#9c2733',crit?9:5,1.8);
@@ -1591,6 +1716,7 @@ function hitEnemy(e,dmg,crit,burn){
   if(burn){ e.burn=bl?6:3; e.burnDmg=dmg*(bl?0.30:0.15); }
   if(crit&&hasPw(p,'ripper')&&!burn){ e.burn=Math.max(e.burn,2); e.burnDmg=Math.max(e.burnDmg,dmg*0.4*0.5); }
   if(crit&&treeVal(p,'bleedP')>0&&!burn){ e.burn=Math.max(e.burn,2); e.burnDmg=Math.max(e.burnDmg,dmg*treeVal(p,'bleedP')/100*0.5); }
+  if(p.gemBurn>0&&!burn){ e.burn=Math.max(e.burn,2); e.burnDmg=Math.max(e.burnDmg,dmg*p.gemBurn/100*0.5); }
   if(treeVal(p,'slowHit')>0) e.slow=Math.max(e.slow,treeVal(p,'slowHit')*ccMul(p));
   if(p.leech>0){ p.hp=Math.min(p.maxHp,p.hp+dmg*p.leech/100); }
   sfx('hit');
@@ -1627,6 +1753,11 @@ function killEnemy(e){
     dropAsh(2,e.x-.5,e.y);
     msg('The <b style="color:#7dc26e">Coven Imp</b> bursts like a dropped purse.','#7dc26e');
   }
+  if(e.keyBearer){
+    for(const c of G.chests) if(c.warded) c.warded=false;
+    msg('A black iron key falls from the warden — somewhere on this floor, <b style="color:#f0bd4e">a ward shatters</b>.','#f0bd4e');
+    sfx('chest');
+  }
   if(e.revenant){
     msg('The revenant comes apart with something like <b style="color:#9fb6c9">relief</b>, and lets go of what it carried.','#9fb6c9');
     const gear=(e.revenant.gear||[]).map(reviveItem).filter(Boolean);
@@ -1642,6 +1773,7 @@ function killEnemy(e){
     else dropItem(makeItem(G.floor+1,Math.random()<.30?'unique':'magic',luck),e.x,e.y);
     dropItem(makePotion('hp'),e.x-.6,e.y);
     if(Math.random()<.45) dropItem(makePet(Math.random()<.3?'unique':'magic'),e.x,e.y+.6);
+    if(Math.random()<.35) dropItem(makeGem(G.floor>=12?randi(2,3):G.floor>=6?randi(1,2):1),e.x-.6,e.y+.6);
     dropGold((30+G.floor*14)*gMul,e.x+.6,e.y);
     dropAsh(randi(3,5),e.x,e.y-.6);
     document.getElementById('bossbar').style.display='none';
@@ -1810,6 +1942,10 @@ function hurtPlayer(raw,srcName,attacker){
     G.pardonUsed=true; dmg=Math.max(0,p.hp-1);
     addText(p.x,p.y,'her Pardon holds','#f0bd4e'); addFx(p.x,p.y,'#f0bd4e',12,2,2.5);
   }
+  if(p.watchSet&&p.hp-dmg<p.maxHp*0.4&&p.hp-dmg>0&&(!p.watchT||G.time-p.watchT>20)){
+    p.watchT=G.time; p.buffs.frenzy=Math.max(p.buffs.frenzy||0,4);
+    addText(p.x,p.y,'the Watch rouses','#7ddf8a'); addFx(p.x,p.y,'#7ddf8a',8,1.8,2);
+  }
   p.hp-=dmg; p.hitFlash=.18;
   if(hasPw(p,'nova')&&p.hp>0&&p.hp<p.maxHp*0.30&&(!p.novaT||G.time-p.novaT>8)){
     p.novaT=G.time;
@@ -1849,11 +1985,12 @@ function tryCast(idx){
   const sk=p.c.skills[idx]; if(!sk) return;
   if(sk.locked&&treeVal(p,'unlock_'+sk.id)<=0){ addText(p.x,p.y,'Art not yet learned (T)','#9aa39b'); return; }
   if(p.cds[sk.id]>0){ return; }
-  if(p.ap<sk.cost){ addText(p.x,p.y,'No aether','#7be3c4'); return; }
+  const cost=Math.ceil(sk.cost*(p.costMul||1));
+  if(p.ap<cost){ addText(p.x,p.y,'No aether','#7be3c4'); return; }
   const m=G.mouse;
   const tv=k=>treeVal(p,k);
   const coef=sk.coef*(1+tv('sd_'+sk.id)/100);
-  p.ap-=sk.cost; p.cds[sk.id]=sk.cd*Math.max(.3,1-tv('cdr_'+sk.id)/100)*(1-(p.cdr||0)/100); p.castT=.22; p.path=[];
+  p.ap-=cost; p.cds[sk.id]=sk.cd*Math.max(.3,1-tv('cdr_'+sk.id)/100)*(1-(p.cdr||0)/100); p.castT=.22; p.path=[];
   p.dir=(m.tx>p.x)?1:-1;
   wearItem(p.equip.weapon,0.2);
   sfx(sk.proj?'shoot':'magic');
@@ -1876,7 +2013,7 @@ function tryCast(idx){
   if(sk.blink){
     let tx=m.tx,ty=m.ty;
     if(!walkable(Math.round(tx),Math.round(ty)) || dist(p.x,p.y,tx,ty)>7 || !hasLOS(p.x,p.y,tx,ty)){
-      addText(p.x,p.y,'Blocked','#9aa39b'); p.ap+=sk.cost; p.cds[sk.id]=0; return;
+      addText(p.x,p.y,'Blocked','#9aa39b'); p.ap+=cost; p.cds[sk.id]=0; return;
     }
     addFx(p.x,p.y,'#cfd6dd',12,2);
     p.x=tx; p.y=ty; p.buffs.vicious=sk.buff+tv('stepDur');
@@ -1926,7 +2063,7 @@ function tryCast(idx){
   }
   if(sk.ground||sk.self){
     const cx=sk.self?p.x:m.tx, cy=sk.self?p.y:m.ty;
-    if(!sk.self&&dist(p.x,p.y,cx,cy)>9){ addText(p.x,p.y,'Too far','#9aa39b'); p.ap+=sk.cost; p.cds[sk.id]=0; return; }
+    if(!sk.self&&dist(p.x,p.y,cx,cy)>9){ addText(p.x,p.y,'Too far','#9aa39b'); p.ap+=cost; p.cds[sk.id]=0; return; }
     const radius=sk.radius+tv('rad_'+sk.id);
     const stunDur=((sk.stun||0)+tv('stun_'+sk.id))*ccMul(p);
     const slowDur=((sk.slow||0)+tv('slow_'+sk.id))*ccMul(p);
@@ -1998,7 +2135,7 @@ function cacheFloor(){
   if(G.player==null||map==null||G.indict) return; // indicted floors are one visit only
   G.cache[G.floor]={map,decor,seen,lit,MW,MH,enemies:G.enemies,drops:G.drops,stains:G.stains,
     boss:G.boss,shrineUsed:G.shrineUsed,shrineType:G.shrineType,stairs:G.stairs,up:G.up,npcs:G.npcs,
-    chests:G.chests,breaks:G.breaks};
+    chests:G.chests,breaks:G.breaks,event:G.event};
 }
 function spawnAdjacent(pt){
   for(const [dx,dy] of [[0,1],[1,0],[0,-1],[-1,0],[1,1],[-1,-1],[1,-1],[-1,1]]){
@@ -2014,17 +2151,17 @@ function startFloor(n,from){
   if(!G.indict) G.deepest=Math.max(G.deepest||1,n);
   const p=G.player;
   p.path=[]; G.projs=[]; G.fx=[]; G.texts=[]; G.turrets=[]; G.minions=[]; G.pools=[]; G.decoys=[]; G.telegraphs=[];
-  p.pendingAttack=null; p.pendingPickup=null; p.pendingShop=null; p.pendingChest=null; p.pendingBreak=null;
+  p.pendingAttack=null; p.pendingPickup=null; p.pendingShop=null; p.pendingChest=null; p.pendingBreak=null; p.pendingEvent=null;
   const cached=G.indict?null:G.cache[n];
   if(cached){
     ({map,decor,seen,lit,MW,MH}=cached);
     G.enemies=cached.enemies; G.drops=cached.drops; G.stains=cached.stains;
     G.boss=cached.boss; G.shrineUsed=cached.shrineUsed; G.shrineType=cached.shrineType||'mending'; G.stairs=cached.stairs; G.up=cached.up; G.npcs=cached.npcs||[];
-    G.chests=cached.chests||[]; G.breaks=cached.breaks||[];
+    G.chests=cached.chests||[]; G.breaks=cached.breaks||[]; G.event=cached.event||null;
   } else if(n===0){
     const {start}=genTown();
     G.enemies=[]; G.drops=[]; G.stains=[]; G.boss=null; G.shrineUsed=true;
-    G.chests=[]; G.breaks=[];
+    G.chests=[]; G.breaks=[]; G.event=null;
     G.stairs={x:14,y:3}; G.up=null;
     G.npcs=NPCS.map(d=>({...d}));
     if(p.ending==='spared') G.npcs.push({id:'abigail', n:'A Quiet Woman by the Gallows', glyph:'🕯️', color:'#f0bd4e', x:24, y:14,
@@ -2112,6 +2249,8 @@ function update(dt){
         if(!c.opened&&dist(p.x,p.y,c.x,c.y)<1.7) openChest(c); }
       if(p.pendingBreak){ const b=p.pendingBreak; p.pendingBreak=null;
         if(!b.dead&&dist(p.x,p.y,b.x,b.y)<1.7) smashBreak(b); }
+      if(p.pendingEvent){ const ev=p.pendingEvent; p.pendingEvent=null;
+        if(ev===G.event&&ev.state===0&&dist(p.x,p.y,ev.x,ev.y)<1.8) activateEvent(); }
       if(p.pendingShop){ const n=p.pendingShop; p.pendingShop=null;
         if(dist(p.x,p.y,n.x,n.y)<2.2){ n.stash?openStash():n.board?openBoard():openShop(n.id); } }
     }
@@ -2328,6 +2467,23 @@ function update(dt){
   }
   updateCompanions(dt);
   updateTelegraphs(dt);
+  // the séance is not finished until the table says so
+  if(G.event&&G.event.kind==='seance'&&G.event.state===1){
+    const ev=G.event;
+    if(ev.spawned&&ev.spawned.length&&ev.spawned.every(e=>e.dead)){
+      if(ev.wave===1){
+        msg('The table is not satisfied. <b style="color:#c78bf2">More sitters.</b>','#c78bf2');
+        spawnSeanceWave(ev,2);
+      } else {
+        ev.state='done';
+        msg('The planchette spells <i>T H A N K · Y O U</i> and goes still. A gift remains on the felt.','#c78bf2');
+        sfx('gold-drop');
+        dropItem(makeItem(G.floor+1,Math.random()<0.25?'unique':'magic',p.luck),ev.x,ev.y+0.6);
+        dropAsh(randi(2,4),ev.x,ev.y-0.5);
+        dropGold(20+G.floor*8,ev.x+0.6,ev.y);
+      }
+    }
+  }
   if(G.boss&&!G.boss.dead){
     document.getElementById('boss-fill').style.width=(G.boss.hp/G.boss.maxHp*100)+'%';
   }
@@ -2719,9 +2875,90 @@ function placeFurnishings(rooms,n){
     const r=rooms.length>2?choice(rooms.slice(1)):rooms[0];
     G.drops.push({page:n,x:r.cx+rand(-1,1),y:r.cy+rand(-1,1),bob:rand(0,9)});
   }
+  placeEvent(rooms,n);
+}
+/* ---------- things in the dark that are not merely fights ---------- */
+function placeEvent(rooms,n){
+  G.event=null;
+  if(n<2||Math.random()>0.55||rooms.length<3) return;
+  const kinds=['seance','cage'];
+  if(n>=4) kinds.push('altar');
+  if(n>=3) kinds.push('vault');
+  const kind=choice(kinds);
+  if(kind==='vault'){
+    // a warded coffer, and a warden somewhere on the floor with its key
+    let elite=G.enemies.find(e=>e.elite&&!e.dead&&!e.boss);
+    if(!elite){
+      const cand=G.enemies.filter(e=>!e.boss&&!e.dead&&!e.type.flees&&!e.type.still);
+      if(!cand.length) return;
+      elite=choice(cand);
+      elite.elite=true; elite.hp=Math.round(elite.hp*2.6); elite.maxHp=elite.hp;
+      elite.dmgLo*=1.5; elite.dmgHi*=1.5; elite.xp=Math.round(elite.xp*3);
+      elite.name=choice(ELITE_PREFIX)+' '+elite.type.n;
+    }
+    const r=choice(rooms.slice(1));
+    const c={x:r.x+randi(1,r.w-2),y:r.y+randi(1,r.h-2),opened:false,warded:true,gilded:true};
+    if(map[c.y]&&map[c.y][c.x]===T_FLOOR&&!G.chests.some(o=>o.x===c.x&&o.y===c.y)){
+      decor[c.y][c.x]=0; G.chests.push(c);
+      elite.keyBearer=true; elite.name='Key-Warden, '+elite.name;
+    }
+    return;
+  }
+  const r=choice(rooms.slice(1));
+  const x=r.cx, y=r.cy;
+  if(map[y]&&map[y][x]===T_FLOOR){ decor[y][x]=0; G.event={kind,x,y,state:0}; }
+}
+const EVENT_NAMES={seance:'A Séance Table',cage:'A Caged Townsman',altar:'A Cursed Altar'};
+function activateEvent(){
+  const ev=G.event, p=G.player; if(!ev||ev.state!==0) return;
+  if(ev.kind==='seance'){
+    ev.state=1;
+    msg('The planchette stirs under nobody’s hand. The table demands <b style="color:#c78bf2">sitters</b>.','#c78bf2'); sfx('boss');
+    spawnSeanceWave(ev,1);
+  } else if(ev.kind==='cage'){
+    ev.state='done';
+    if(Math.random()<0.22){
+      msg('The figure in the cage <b style="color:var(--blood)">unfolds wrong</b> — it was never a townsman.','#e08a8a'); sfx('boss');
+      const ge=addEnemy(TYPE_BY_ID.spectre,Math.round(ev.x),Math.round(ev.y)+1,Math.max(2,G.floor),true);
+      if(ge) ge.aggro=true;
+    } else {
+      msg('“Bless you — bless you—” The freed townsman snatches up a coffin board and <b style="color:#7be3c4">falls in beside you</b>.','#7be3c4'); sfx('level');
+      G.minions.push({x:ev.x,y:ev.y+1,t:9999,atkT:0,coef:1.15,anim:rand(0,9),townsman:true});
+    }
+  } else if(ev.kind==='altar'){
+    ev.state='done';
+    if(Math.random()<0.65){
+      const roll=choice(['fortune','frenzy','aether']);
+      if(roll==='fortune'){ p.buffs.fortune=75; msg('The altar accepts your prayer. <b style="color:var(--uniq-gold)">Providence</b> clings to you (75s).','#f0bd4e'); }
+      else if(roll==='frenzy'){ p.buffs.frenzy=45; msg('The altar accepts. Your blood <b style="color:#e08a8a">sings</b> (45s).','#e08a8a'); }
+      else { p.buffs.aetherflow=45; p.ap=p.maxAp; msg('The altar accepts. The aether <b style="color:#9fe8ff">pours</b> (45s).','#9fe8ff'); }
+      p.hp=p.maxHp; addFx(ev.x,ev.y,'#f0bd4e',18,2,3); sfx('level'); updateHud();
+    } else {
+      msg('The altar <b style="color:var(--blood)">refuses</b> — and something is sent to collect.','#e08a8a'); sfx('boss');
+      const pool=ENEMY_TYPES.filter(t=>(t.minF||1)<=G.floor&&!t.flees&&!t.still);
+      const we=addEnemy(choice(pool),Math.round(ev.x)+randi(-1,1),Math.round(ev.y)+randi(-1,1),G.floor,false,false,true);
+      if(we){ we.aggro=true; we.name='Altar-Warden, '+we.type.n; }
+      if(!hasPw(p,'march')) p.slowT=Math.max(p.slowT||0,2);
+    }
+  }
+}
+function spawnSeanceWave(ev,w){
+  ev.wave=w; ev.spawned=[];
+  const n=3+w*2;
+  for(let i=0;i<n;i++){
+    const t=Math.random()<0.5?TYPE_BY_ID.spectre:TYPE_BY_ID.familiar;
+    const [kx,ky]=bossSpot(ev.x+randi(-2,2),ev.y+randi(-2,2));
+    const e=addEnemy(t,kx,ky,Math.max(2,G.floor),w===2&&i===0);
+    if(e){ e.aggro=true; ev.spawned.push(e); }
+  }
+  sfx('magic'); addFx(ev.x,ev.y,'#c78bf2',16,2.5,3);
 }
 function openChest(c){
   if(c.opened) return;
+  if(c.warded){
+    msg('The coffer is bound in <b style="color:#c78bf2">witch-ward</b>. Its Key-Warden still walks this floor.','#c78bf2');
+    sfx('click'); return;
+  }
   c.opened=true; sfx('chest');
   const p=G.player;
   const luck=p.luck+(p.buffs.fortune>0?40:0);
@@ -2744,6 +2981,7 @@ function openChest(c){
   dropGold((15+G.floor*7)*(c.gilded?2.2:1),c.x,c.y);
   dropItem(makeItem(G.floor+(c.gilded?1:0), c.gilded?(Math.random()<.12?'unique':'magic'):(Math.random()<.5?'magic':null), luck), c.x+.4,c.y);
   if(c.gilded&&Math.random()<.5) dropItem(makeItem(G.floor+1,'magic',luck),c.x-.4,c.y+.3);
+  if(c.gilded&&Math.random()<.5) dropItem(makeGem(G.floor>=12?randi(2,3):G.floor>=6?randi(1,2):1),c.x+.2,c.y-.5);
   if(Math.random()<.4) dropItem(makePotion(Math.random()<.6?'hp':'ap'),c.x,c.y+.5);
   if(c.gilded) dropAsh(randi(2,4),c.x,c.y-.4);
 }
@@ -2896,8 +3134,18 @@ function smithStock(){
     G.stockDepth=G.deepest;
     const n=randi(2,3); G.shopStock=[];
     for(let i=0;i<n;i++) G.shopStock.push(makeItem(Math.max(1,G.deepest),Math.random()<.35?'magic':null));
+    if(Math.random()<.5) G.shopStock.push(makeGem(clamp(Math.ceil(G.deepest/6),1,3)));
   }
   return G.shopStock;
+}
+function smithHosts(p){
+  const hosts=[];
+  for(const s of ['weapon','armor','hat']){
+    const it=p.equip[s];
+    if(it&&it.sk&&(it.gems||[]).length<it.sk) hosts.push({it,where:'worn'});
+  }
+  p.bag.forEach(it=>{ if(it.sk&&(it.gems||[]).length<it.sk) hosts.push({it,where:'satchel'}); });
+  return hosts;
 }
 function sellableValue(p){
   let v=0,n=0;
@@ -2983,7 +3231,7 @@ function openShop(id){
     h+='<div class="shop-note">Ash from the coven\u2019s strangest dead, hammered into honest steel. Bag items only.</div>';
     let anyCraft=false;
     p.bag.forEach((it,i)=>{
-      if(it.potion||it.consume||it.pet) return;
+      if(it.potion||it.consume||it.pet||it.gem||it.indict) return;
       anyCraft=true;
       const canT=it.rarity==='common';
       const canR=it.affixes.length>0;
@@ -2996,6 +3244,19 @@ function openShop(id){
     });
     if(!anyCraft) h+='<div class="shop-note">Nothing on you that the ash will take to.</div>';
     h+='<div class="shop-note" style="font-size:.68rem">T \u2014 Transmute common \u2192 enchanted (2 ash, 30g) \u00B7 R \u2014 Reroll values (3 ash, 40g) \u00B7 A \u2014 Augment +1 enchantment (5 ash, 80g)</div>';
+    h+='<div class="tree-head">Socketry \u2014 hexstones</div>';
+    {
+      const gems=p.bag.map((it2,i2)=>({it:it2,i:i2})).filter(x=>x.it.gem);
+      const hosts=smithHosts(p);
+      if(!gems.length) h+='<div class="shop-note">No hexstones on you. Bosses, gilded coffers, and the strangest dead yield them.</div>';
+      else if(!hosts.length) h+='<div class="shop-note">Nothing on you has an empty socket. Socketed gear shows \u25C7 in its description.</div>';
+      else gems.forEach(g=>{
+        h+='<div class="shop-row"><span class="nm">\uD83D\uDCA0 <span class="nm-'+g.it.rarity+'">'+g.it.name+'</span><small>weapon: '+gemText(g.it.gem,g.it.tier,'weapon')+' \u00B7 coat: '+gemText(g.it.gem,g.it.tier,'armor')+' \u00B7 hat: '+gemText(g.it.gem,g.it.tier,'hat')+'</small></span>'
+          +'<span style="display:flex;gap:.3rem;align-items:center">'
+          +'<select data-gsel="'+g.i+'">'+hosts.map((h2,hi)=>'<option value="'+hi+'">'+h2.it.name+' ('+h2.where+')</option>').join('')+'</select>'
+          +'<button data-gset="'+g.i+'" '+(p.gold<25?'disabled':'')+'>Set \uD83E\uDE9925</button></span></div>';
+      });
+    }
     h+=sellSection();
   } else if(id==='merchant'){
     h+='<div class="shop-row"><span class="nm">\uD83D\uDCDC Scroll of Escape<small>Opens a portal to Salem that waits to carry you back. Stacks in the satchel.</small></span><button data-cons="scroll" '+(p.gold<40?'disabled':'')+'>Buy \uD83E\uDE9940</button></div>';
@@ -3019,6 +3280,18 @@ function openShop(id){
   } else if(id==='abigail'){
     h+='<div class="shop-note">She is watching the rope sway. It is just rope now.</div>';
     h+='<div class="shop-note">“Two hundred years I kept that chair for somebody who would read the whole of it. You kept the appointment. Most people only keep the hangings.”</div>';
+    if(!G.abbyStock||G.abbyStockDepth!==G.deepest){
+      G.abbyStockDepth=G.deepest;
+      const t2=clamp(Math.ceil(G.deepest/6),1,3);
+      G.abbyStock=[makeGem(t2),makeGem(clamp(t2+(Math.random()<.4?1:0),1,3))];
+    }
+    h+='<div class="tree-head">Hexstones — pressed from her own ash, freely given</div>';
+    G.abbyStock.forEach((g,i)=>{
+      if(!g) return;
+      const price=90*g.tier;
+      h+='<div class="shop-row"><span class="nm">💠 <span class="nm-'+g.rarity+'">'+g.name+'</span><small>weapon: '+gemText(g.gem,g.tier,'weapon')+' · coat: '+gemText(g.gem,g.tier,'armor')+' · hat: '+gemText(g.gem,g.tier,'hat')+'</small></span>'
+        +'<button data-abby="'+i+'" '+(p.gold<price?'disabled':'')+'>Buy 🪙'+price+'</button></div>';
+    });
     h+='<div class="shop-note">“Go on, little lamp. The house is only a house. The town is only a town. That was the whole trick of it, in the end — they always were.”</div>';
   } else if(id==='sineater'){
     const ranks=Object.values(p.tree||{}).reduce((a,b)=>a+b,0);
@@ -3068,6 +3341,31 @@ function openShop(id){
       if(!addToBag(p,makeConsumable(k))){ msg('Satchel is full.','#9aa39b'); return; }
       p.gold-=cost;
       sfx('pickup'); updateHud(); renderInv(); saveGame(); openShop(id); };
+  });
+  body.querySelectorAll('button[data-abby]').forEach(btn=>{
+    btn.onclick=()=>{
+      const i=+btn.dataset.abby, g=G.abbyStock[i]; if(!g) return;
+      const price=90*g.tier; if(p.gold<price) return;
+      if(!addToBag(p,g)){ msg('Satchel is full.','#9aa39b'); return; }
+      p.gold-=price; G.abbyStock[i]=null;
+      sfx('pickup'); msg('“Careful with that. Some of it is still me.”');
+      updateHud(); renderInv(); saveGame(); openShop(id);
+    };
+  });
+  body.querySelectorAll('button[data-gset]').forEach(btn=>{
+    btn.onclick=()=>{
+      const gi=+btn.dataset.gset, gem=p.bag[gi];
+      if(!gem||!gem.gem||p.gold<25) return;
+      const sel=body.querySelector('select[data-gsel="'+gi+'"]'); if(!sel) return;
+      const host=smithHosts(p)[+sel.value]; if(!host) return;
+      const it=host.it;
+      if((it.gems||[]).length>=it.sk) return;
+      it.gems=it.gems||[]; it.gems.push({gem:gem.gem,tier:gem.tier});
+      p.bag.splice(gi,1); p.gold-=25;
+      recalc(p); sfx('shrine');
+      msg('The hexstone <b style="color:'+GEMS[gem.gem].color+'">bites into the setting</b> of '+it.name+'.');
+      updateHud(); renderInv(); saveGame(); openShop(id);
+    };
   });
   body.querySelectorAll('button[data-writ]').forEach(btn=>{
     btn.onclick=()=>{ if(p.gold<250) return;
@@ -3311,6 +3609,8 @@ function render(){
   for(const b of G.breaks) if(!b.dead&&seen[Math.round(b.y)]?.[Math.round(b.x)])
     ents.push({d:b.x+b.y,draw:()=>drawBreak(b)});
   for(const dc of G.decoys) ents.push({d:dc.x+dc.y,draw:()=>drawDecoy(dc)});
+  if(G.event&&seen[Math.round(G.event.y)]?.[Math.round(G.event.x)])
+    ents.push({d:G.event.x+G.event.y,draw:()=>drawEvent(G.event)});
   for(const e of G.enemies) if(!e.dead&&seen[Math.round(e.y)]?.[Math.round(e.x)]&&lit[Math.round(e.y)][Math.round(e.x)]>0.02)
     ents.push({d:e.x+e.y,draw:()=>drawEnemy(e)});
   for(const d of G.drops) if(seen[Math.round(d.y)]?.[Math.round(d.x)])
@@ -3391,7 +3691,7 @@ function render(){
     const w=ctx.measureText(d.it.name).width+12;
     ctx.fillStyle='rgba(8,9,8,.88)'; ctx.fillRect(sx-w/2,sy-44,w,18);
     ctx.strokeStyle='rgba(200,155,60,.5)'; ctx.strokeRect(sx-w/2,sy-44,w,18);
-    ctx.fillStyle=d.it.rarity==='unique'?'#f0bd4e':d.it.rarity==='magic'?'#7db1ff':'#d8d8d2';
+    ctx.fillStyle=d.it.rarity==='unique'?'#f0bd4e':d.it.rarity==='set'?'#7ddf8a':d.it.rarity==='magic'?'#7db1ff':'#d8d8d2';
     ctx.fillText(d.it.name,sx,sy-31);
   }
   if(G.hoverEnemy&&!G.hoverEnemy.dead){
@@ -3413,12 +3713,21 @@ function render(){
   }
   if(G.hoverChest&&!G.hoverChest.opened){
     const c=G.hoverChest,[sx,sy]=isoPos(c.x,c.y);
-    const nm=c.gilded?'Gilded Coffer':'Iron-Bound Coffer';
+    const nm=c.warded?'Warded Coffer':c.gilded?'Gilded Coffer':'Iron-Bound Coffer';
     ctx.font="13px 'IM Fell English',serif"; ctx.textAlign='center';
     const w=ctx.measureText(nm).width+12;
     ctx.fillStyle='rgba(8,9,8,.88)'; ctx.fillRect(sx-w/2,sy-46,w,18);
-    ctx.strokeStyle=c.gilded?'rgba(240,189,78,.7)':'rgba(200,155,60,.5)'; ctx.strokeRect(sx-w/2,sy-46,w,18);
-    ctx.fillStyle=c.gilded?'#f0bd4e':'#d9cdb0'; ctx.fillText(nm,sx,sy-33);
+    ctx.strokeStyle=c.warded?'rgba(199,139,242,.7)':c.gilded?'rgba(240,189,78,.7)':'rgba(200,155,60,.5)'; ctx.strokeRect(sx-w/2,sy-46,w,18);
+    ctx.fillStyle=c.warded?'#c78bf2':c.gilded?'#f0bd4e':'#d9cdb0'; ctx.fillText(nm,sx,sy-33);
+  }
+  if(G.hoverEvent){
+    const ev=G.hoverEvent,[sx,sy]=isoPos(ev.x,ev.y);
+    const nm=EVENT_NAMES[ev.kind]||'…';
+    ctx.font="13px 'IM Fell English',serif"; ctx.textAlign='center';
+    const w=ctx.measureText(nm).width+12;
+    ctx.fillStyle='rgba(8,9,8,.88)'; ctx.fillRect(sx-w/2,sy-52,w,18);
+    ctx.strokeStyle='rgba(199,139,242,.6)'; ctx.strokeRect(sx-w/2,sy-52,w,18);
+    ctx.fillStyle='#c78bf2'; ctx.fillText(nm,sx,sy-39);
   }
   // lantern glow around the player
   { const [px,py]=isoPos(p.x,p.y);
@@ -3941,8 +4250,75 @@ function drawChest(c){
       ctx.beginPath();ctx.moveTo(-8,-10);ctx.lineTo(8,-10);ctx.stroke();
       ctx.shadowBlur=0;
     }
+    if(c.warded){
+      const wg=0.5+0.3*Math.sin(G.time*3+c.x);
+      ctx.strokeStyle=`rgba(199,139,242,${wg.toFixed(3)})`; ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.moveTo(-10,-12);ctx.lineTo(10,1);ctx.moveTo(10,-12);ctx.lineTo(-10,1);ctx.stroke();
+      ctx.shadowColor='#c78bf2'; ctx.shadowBlur=8;
+      ctx.strokeStyle=`rgba(199,139,242,${(wg*0.7).toFixed(3)})`;
+      ctx.beginPath();ctx.ellipse(0,-7,12,9,0,0,7);ctx.stroke();
+      ctx.shadowBlur=0;
+    }
   }
   ctx.restore();
+}
+function drawEvent(ev){
+  const [sx,sy]=isoPos(ev.x,ev.y);
+  const t=G.time, done=ev.state==='done';
+  drawShadow(sx,sy,10);
+  ctx.save(); ctx.translate(sx,sy);
+  if(done) ctx.globalAlpha=0.6;
+  if(ev.kind==='seance'){
+    ctx.strokeStyle='#2c2014'; ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(-6,-2);ctx.lineTo(-7,3);ctx.moveTo(6,-2);ctx.lineTo(7,3);ctx.moveTo(0,-2);ctx.lineTo(0,4);ctx.stroke();
+    ctx.fillStyle='#3a2c1e';
+    ctx.beginPath();ctx.ellipse(0,-6,12,5.5,0,0,7);ctx.fill();
+    ctx.fillStyle='#4a1d28';
+    ctx.beginPath();ctx.ellipse(0,-6.5,10,4.4,0,0,7);ctx.fill();
+    ctx.fillStyle='#d9cdb0';
+    ctx.beginPath();ctx.moveTo(-2.5,-8);ctx.lineTo(2.5,-8);ctx.lineTo(0,-5);ctx.closePath();ctx.fill(); // the planchette
+    for(const ox of [-8,8]){
+      ctx.fillStyle='#d9cdb0'; ctx.fillRect(ox-1,-12,2,4);
+      const g=0.5+0.4*Math.sin(t*6+ox);
+      ctx.fillStyle=`rgba(199,139,242,${(done?0.2:0.7*g).toFixed(3)})`;
+      ctx.beginPath();ctx.ellipse(ox,-14,1.6,2.6,0,0,7);ctx.fill();
+    }
+    if(!done){
+      ctx.strokeStyle=`rgba(199,139,242,${(0.3+0.2*Math.sin(t*2.4)).toFixed(3)})`; ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.ellipse(0,-6,13.5,6.4,0,0,7);ctx.stroke();
+    }
+  } else if(ev.kind==='cage'){
+    ctx.fillStyle='#23262b';
+    ctx.beginPath();ctx.ellipse(0,0,9,3.6,0,0,7);ctx.fill();
+    if(!done){
+      ctx.fillStyle='#4a4438';
+      ctx.beginPath();ctx.moveTo(-3.4,-6);ctx.quadraticCurveTo(0,-11,3.4,-6);ctx.lineTo(2.6,-3);ctx.quadraticCurveTo(0,-6,-2.6,-3);ctx.closePath();ctx.fill(); // hunched figure
+      ctx.fillStyle='#9a8a76'; ctx.beginPath();ctx.arc(0,-10,2.4,0,7);ctx.fill();
+    }
+    ctx.strokeStyle='#2c3030'; ctx.lineWidth=1.8;
+    for(const ox of [-7,-3.5,0,3.5,7]){
+      ctx.beginPath();ctx.moveTo(ox,-1);ctx.quadraticCurveTo(ox*0.85,-14,0,-22);ctx.stroke();
+    }
+    ctx.lineWidth=2.4;
+    ctx.beginPath();ctx.moveTo(0,-22);ctx.lineTo(0,-26);ctx.stroke();
+    if(!done){ ctx.fillStyle='#c89b3c'; ctx.fillRect(5.4,-8,2.6,3.4); } // the lock
+  } else { // cursed altar
+    ctx.fillStyle='#3a3330'; ctx.fillRect(-10,-11,20,11);
+    ctx.fillStyle='#2a1518'; ctx.fillRect(-10,-12.5,20,3.4);
+    ctx.fillStyle='rgba(120,25,30,.6)';
+    ctx.beginPath();ctx.moveTo(-3,-9.5);ctx.lineTo(-2,-3);ctx.lineTo(-4,-1);ctx.lineTo(-4.6,-9.5);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#cfc8b4';
+    ctx.beginPath();ctx.arc(3,-14.6,2.6,0,7);ctx.fill();
+    ctx.fillStyle='#15110c'; ctx.fillRect(2,-15.2,1.2,1.2); ctx.fillRect(3.8,-15.2,1.2,1.2);
+    for(const ox of [-7,7.5]){
+      ctx.fillStyle='#1c1a16'; ctx.fillRect(ox-1,-17,2,5);
+      const g=0.5+0.4*Math.sin(t*7+ox);
+      ctx.fillStyle=`rgba(195,75,86,${(done?0.2:0.75*g).toFixed(3)})`;
+      ctx.beginPath();ctx.ellipse(ox,-19,1.5,2.6,0,0,7);ctx.fill();
+    }
+  }
+  ctx.restore();
+  ctx.globalAlpha=1;
 }
 function drawBreak(b){
   const [sx,sy]=isoPos(b.x,b.y);
@@ -4585,6 +4961,12 @@ function drawEnemy(e){
   if(e.boss){ ctx.strokeStyle='rgba(240,189,78,.8)'; ctx.lineWidth=2;
     ctx.beginPath();ctx.ellipse(0,10*s,15*s,6.5*s,0,0,7);ctx.stroke(); }
   if(e.stun>0){ ctx.fillStyle='#e8d9a0'; ctx.font='12px serif'; ctx.fillText('\u2736',-3,-24*s); }
+  if(e.keyBearer){
+    const kg=0.6+0.4*Math.sin(t*4);
+    ctx.fillStyle=`rgba(240,189,78,${kg.toFixed(3)})`; ctx.font='11px serif'; ctx.textAlign='center';
+    ctx.fillText('\ud83d\udddd',0,-28*s);
+    ctx.textAlign='left';
+  }
   ctx.restore();
   if(e.hp<e.maxHp&&!e.boss){
     const w=30*s;
@@ -4632,7 +5014,7 @@ function drawDrop(d){
     return;
   }
   const lift=Math.abs(Math.sin(d.bounce*4))*10+Math.sin(G.time*2.5+d.x)*1.5;
-  const col=d.it.rarity==='unique'?'#f0bd4e':d.it.rarity==='magic'?'#7db1ff':'#d8d8d2';
+  const col=d.it.rarity==='unique'?'#f0bd4e':d.it.rarity==='set'?'#7ddf8a':d.it.rarity==='magic'?'#7db1ff':'#d8d8d2';
   drawShadow(sx,sy,6);
   ctx.save(); ctx.translate(sx,sy-8-lift);
   if(d.it.rarity!=='common'){ ctx.shadowColor=col; ctx.shadowBlur=12; }
@@ -4655,7 +5037,7 @@ function updatePointer(ev){
   const [wx,wy]=screenToWorld(ev.clientX,ev.clientY);
   G.mouse.tx=wx; G.mouse.ty=wy;
   // hover detection
-  G.hoverDrop=null; G.hoverEnemy=null; G.hoverNpc=null; G.hoverChest=null; G.hoverBreak=null;
+  G.hoverDrop=null; G.hoverEnemy=null; G.hoverNpc=null; G.hoverChest=null; G.hoverBreak=null; G.hoverEvent=null;
   let bd=0.9;
   for(const d of G.drops){ if(d.gold||d.ash||d.page!=null) continue; const dd=dist(wx,wy,d.x,d.y); if(dd<bd){bd=dd;G.hoverDrop=d;} }
   bd=0.9;
@@ -4665,10 +5047,11 @@ function updatePointer(ev){
   if(G.floor===0&&dist(wx,wy,STASH_POS.x,STASH_POS.y)<1.0) G.hoverNpc={id:'__stash',n:'Town Stash',x:STASH_POS.x,y:STASH_POS.y,stash:true};
   if(G.floor===0&&dist(wx,wy,BOARD_POS.x,BOARD_POS.y)<1.0) G.hoverNpc={id:'__board',n:'Parish Notice Board',x:BOARD_POS.x,y:BOARD_POS.y,board:true};
   if(!G.hoverNpc&&!G.hoverEnemy){
+    if(G.event&&G.event.state===0&&dist(wx,wy,G.event.x,G.event.y)<1.0) G.hoverEvent=G.event;
     bd=0.85;
-    for(const c of G.chests){ if(c.opened) continue; const dd=dist(wx,wy,c.x,c.y); if(dd<bd){bd=dd;G.hoverChest=c;} }
+    if(!G.hoverEvent) for(const c of G.chests){ if(c.opened) continue; const dd=dist(wx,wy,c.x,c.y); if(dd<bd){bd=dd;G.hoverChest=c;} }
     bd=0.7;
-    if(!G.hoverChest) for(const b of G.breaks){ if(b.dead) continue; const dd=dist(wx,wy,b.x,b.y); if(dd<bd){bd=dd;G.hoverBreak=b;} }
+    if(!G.hoverEvent&&!G.hoverChest) for(const b of G.breaks){ if(b.dead) continue; const dd=dist(wx,wy,b.x,b.y); if(dd<bd){bd=dd;G.hoverBreak=b;} }
   }
   if(G.hoverDrop&&!G.hoverDrop.it.potion&&ev.pointerType==='mouse') showWorldTooltip(G.hoverDrop.it,ev.clientX,ev.clientY);
   else hideTooltip();
@@ -4690,7 +5073,7 @@ window.addEventListener('pointercancel',()=>G.mouse.down=false);
 canvas.addEventListener('contextmenu',ev=>ev.preventDefault());
 function issueClick(){
   const p=G.player; if(!p||p.dead) return;
-  p.pendingAttack=null; p.pendingPickup=null; p.pendingShop=null; p.pendingChest=null; p.pendingBreak=null;
+  p.pendingAttack=null; p.pendingPickup=null; p.pendingShop=null; p.pendingChest=null; p.pendingBreak=null; p.pendingEvent=null;
   if(G.hoverNpc){
     const n=G.hoverNpc;
     if(dist(p.x,p.y,n.x,n.y)<2.2){ n.stash?openStash():n.board?openBoard():openShop(n.id); }
@@ -4701,6 +5084,12 @@ function issueClick(){
     const e=G.hoverEnemy;
     if(dist(p.x,p.y,e.x,e.y)<1.6){ basicAttack(e); p.path=[]; }
     else { p.pendingAttack=e; p.path=findPath(p.x,p.y,Math.round(e.x),Math.round(e.y))||[]; }
+    return;
+  }
+  if(G.hoverEvent&&G.hoverEvent.state===0){
+    const ev=G.hoverEvent;
+    if(dist(p.x,p.y,ev.x,ev.y)<1.8){ activateEvent(); p.path=[]; }
+    else { p.pendingEvent=ev; p.path=findPath(p.x,p.y,Math.round(ev.x),Math.round(ev.y))||[]; }
     return;
   }
   if(G.hoverChest&&!G.hoverChest.opened){
@@ -4842,6 +5231,15 @@ function itemTooltipHTML(it,compare){
     h+='<div class="flavor">“The parish requires a witness.”</div>';
     return h;
   }
+  if(it.gem){
+    h+='<div class="itype">Hexstone \u00B7 tier '+it.tier+'</div>';
+    h+='<div class="base">The blacksmith can set this into a socketed weapon, coat or hat:</div>';
+    h+='<div class="aff">In a weapon \u2014 '+gemText(it.gem,it.tier,'weapon')+'</div>';
+    h+='<div class="aff">In a coat \u2014 '+gemText(it.gem,it.tier,'armor')+'</div>';
+    h+='<div class="aff">In a hat \u2014 '+gemText(it.gem,it.tier,'hat')+'</div>';
+    h+='<div class="flavor">Witch ash, pressed until it remembers being a jewel.</div>';
+    return h;
+  }
   if(it.pet){
     const def=petDef(it);
     h+='<div class="itype">'+(it.rarity==='unique'?'Unique ':it.rarity==='magic'?'Enchanted ':'')+'companion</div>';
@@ -4853,11 +5251,28 @@ function itemTooltipHTML(it,compare){
     h+='<div class="hint">Click to use</div>';
     return h;
   } else {
-    h+='<div class="itype">'+(it.rarity==='unique'?'Unique ':it.rarity==='magic'?'Enchanted ':'')+it.slot+' \u00B7 tier '+it.ilvl+'</div>';
+    h+='<div class="itype">'+(it.rarity==='unique'?'Unique ':it.rarity==='set'?'Set ':it.rarity==='magic'?'Enchanted ':'')+it.slot+' \u00B7 tier '+it.ilvl+'</div>';
   }
   if(it.dmgLo!=null) h+='<div class="base">'+it.dmgLo+'\u2013'+it.dmgHi+' damage</div>';
   if(it.armorBase) h+='<div class="base">'+it.armorBase+' armor</div>';
   for(const a of it.affixes) h+='<div class="aff">'+a.t(a.v)+'</div>';
+  if(it.sk){
+    for(let gi=0;gi<it.sk;gi++){
+      const gm=it.gems&&it.gems[gi];
+      if(gm){ const gd=GEMS[gm.gem];
+        h+='<div class="aff" style="color:'+gd.color+'">\u25C6 '+GEM_TIERS[gm.tier-1]+' '+gd.n+' \u2014 '+gemText(gm.gem,gm.tier,it.slot)+'</div>'; }
+      else h+='<div class="base" style="color:#697066">\u25C7 an empty socket (the smith can set a hexstone)</div>';
+    }
+  }
+  if(it.set){
+    const sd=SETS.find(x=>x.id===it.set);
+    if(sd){
+      const cnt=G.player?SLOTS.filter(sl=>G.player.equip[sl]&&G.player.equip[sl].set===it.set).length:0;
+      h+='<div class="itype" style="color:#7ddf8a;margin-top:.3rem">'+sd.n+' ('+cnt+' of '+sd.pieces.length+' worn)</div>';
+      h+='<div style="color:'+(cnt>=2?'#7ddf8a':'#5d655e')+';font-size:.78rem">(2) '+sd.b2+'</div>';
+      h+='<div style="color:'+(cnt>=3?'#7ddf8a':'#5d655e')+';font-size:.78rem">(3) '+sd.b3+'</div>';
+    }
+  }
   if(it.maxDur!=null){
     const dr=Math.ceil(it.dur);
     h+='<div class="base" style="color:'+(it.dur<=0?'var(--blood)':it.dur<it.maxDur*0.25?'#e0a55b':'var(--parchment-dim)')+'">'
@@ -4911,7 +5326,9 @@ function renderInv(){
       d.innerHTML='<span class="ic">'+itemIcon(it)+'</span>'+((it.qty||1)>1?'<span class="qty">'+it.qty+'</span>':'');
       d.onmouseenter=ev=>showTextTooltip(itemTooltipHTML(it,'bag'),ev);
       d.onmouseleave=hideTooltip;
-      d.onclick=()=>{ if(it.consume) useConsumable(i); else if(it.indict) useIndictment(i); else equipFromBag(i); };
+      d.onclick=()=>{ if(it.consume) useConsumable(i); else if(it.indict) useIndictment(i);
+        else if(it.gem) msg('Ezekiel the blacksmith can set a hexstone into anything socketed.','#9aa39b');
+        else equipFromBag(i); };
       d.oncontextmenu=ev=>{ev.preventDefault(); // drop on ground
         p.bag.splice(i,1); dropItem(it,p.x,p.y); renderInv(); hideTooltip();};
     }
