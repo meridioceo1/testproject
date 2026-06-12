@@ -51,9 +51,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);
 
 /* ---------- title / class select ---------- */
 #title-screen{
-  position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;
+  position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;gap:1.1rem;
+  overflow-y:auto;padding:1.6rem 1rem 2.4rem;scrollbar-width:thin;scrollbar-color:var(--brass-dim) transparent;
   background:radial-gradient(ellipse at 50% 30%, rgba(18,24,20,.40) 0%, rgba(8,10,9,.74) 62%, rgba(4,5,5,.90) 100%);
 }
+/* spacers: centered when there is room, scrollable when there is not */
+#title-screen::before,#title-screen::after{content:'';flex:1 0 0;min-height:0}
 #title-screen h1{
   font-size:clamp(2.4rem,6vw,4.6rem);letter-spacing:.06em;color:var(--parchment);font-weight:400;
   text-shadow:0 0 28px rgba(200,155,60,.35), 0 3px 0 #000;
@@ -740,7 +743,12 @@ const Music={
   },
   setMode(m){ if(this.mode!==m){ this.mode=m; this.mel=0; } },
   sched(){
+    try{ this._sched(); }catch(err){ console.error('music error:',err); this.nextT=(AC?AC.currentTime:0)+0.2; }
+  },
+  _sched(){
     const ac=audio(); if(!ac||ac.state!=='running'||!this.started) return;
+    // if the tab slept, skip the missed bars rather than performing them all at once
+    if(this.nextT<ac.currentTime-0.8) this.nextT=ac.currentTime+0.05;
     this._int+=(this.intensity-this._int)*0.06;
     const m=this.mode;
     const beatDur=m==='boss'?0.42:m==='title'?0.8:m==='town'?0.66:m==='deep'?0.6:0.56;
@@ -6093,7 +6101,24 @@ function renderJournal(){
   const found=Object.keys(p.pages||{}).length;
   document.getElementById('journal-sub').textContent=found+' of '+JOURNAL.length+' pages recovered';
   const b=document.getElementById('journal-body');
-  let h='<div class="shop-note">Loose pages in a dozen hands, scattered through the mansion. Each depth keeps one. They flutter when you come near.</div>';
+  let h='<div class="tree-head" style="margin-top:.2rem">Boons of Salem — what the investigations earned you</div>';
+  QUESTS.forEach((q,i)=>{
+    const key='q'+(i+1), st=p.quests[key], has=unlocked(p,key);
+    const giver=NPCS.find(n2=>n2.id===q.giver);
+    if(has){
+      h+='<div class="j-entry" style="border-color:rgba(125,223,138,.35)"><div class="where" style="color:#7ddf8a">✓ '+q.n+'</div>'
+        +'<h3 style="font-size:.85rem">'+giver.n.split(',')[0]+'’s boon — yours'+((p.ng||0)>0?', kept through every Hanging':'')+'</h3>'
+        +'<p style="font-style:normal;color:var(--parchment-dim)">'+q.un+'</p></div>';
+    } else if(st==='done'){
+      h+='<div class="j-entry"><div class="where" style="color:var(--uniq-gold)">★ '+q.n+' — done; collect from '+giver.n+'</div>'
+        +'<p style="font-style:normal;color:var(--parchment-dim)">'+q.un+'</p></div>';
+    } else {
+      h+='<div class="j-entry locked"><div class="where">'+q.n+' · posted by '+giver.n+'</div>'
+        +'<p>'+q.d+' Its boon, once settled: '+q.un+'</p></div>';
+    }
+  });
+  h+='<div class="tree-head">The Blackwood pages</div>';
+  h+='<div class="shop-note">Loose pages in a dozen hands, scattered through the mansion. Each depth keeps one. They flutter when you come near.</div>';
   JOURNAL.forEach((j,i)=>{
     const n=i+1;
     if(p.pages&&p.pages[n]){
@@ -6514,13 +6539,26 @@ function renderTitle(tt){
 }
 
 let last=performance.now();
+let __lastErr='';
 function loop(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now;
-  if(G.state==='play'){
-    if(document.getElementById('esc-menu').style.display==='flex') render();
-    else { update(dt); render(); }
-  } else if(G.state==='title'){
-    renderTitle(now/1000);
+  // one bad frame must never hang the whole séance: catch, report, carry on
+  try{
+    if(G.state==='play'){
+      if(document.getElementById('esc-menu').style.display==='flex') render();
+      else { update(dt); render(); }
+    } else if(G.state==='title'){
+      renderTitle(now/1000);
+    }
+  }catch(err){
+    console.error('frame error:',err);
+    window.__frameErrs=(window.__frameErrs||[]);
+    if(window.__frameErrs.length<20) window.__frameErrs.push((err&&err.stack)||(''+err));
+    const sig=''+err;
+    if(sig!==__lastErr){
+      __lastErr=sig;
+      try{ msg('<b style="color:var(--blood)">A floorboard gave way</b> — the engine recovered. ('+((err&&err.message)||err)+')','#ff9aa5'); }catch(e2){}
+    }
   }
   requestAnimationFrame(loop);
 }
